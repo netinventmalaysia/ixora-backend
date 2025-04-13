@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: mbmbgo-api
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: rootpassword
+      DB_DATABASE: my_nest_app
+      JWT_SECRET: mySuperSecretKey
+      JWT_EXPIRES_IN: 1d
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+    command: npm run start:dev
+
+  db:
+    image: mysql:8.0
+    container_name: mbmbgo-db
+    restart: always
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: my_nest_app
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  migration:
+    build: .
+    depends_on:
+      - db
+    command: npm run migration:generate -- src/migrations/Init
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: rootpassword
+      DB_DATABASE: my_nest_app
+
+volumes:
+  mysql-data:
