@@ -1,7 +1,3 @@
-Absolutely! Here's the **entire README** formatted in **Markdown**, ready to be copied and pasted into your `README.md` file:
-
----
-
 ```markdown
 # 🏗️ MBMB Basic Template
 
