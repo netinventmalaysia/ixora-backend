@@ -24,4 +24,10 @@ export class AuthService {
             access_token: this.jwtService.sign(payload),
         };
     }
+
+    async logout(refreshToken: string) {
+        // Implement your logout logic here, e.g., invalidate the refresh token
+        return { message: 'Logged out successfully' };
+    }
+
 }

@@ -12,5 +12,54 @@ export class User {
     password: string;
 
     @Column()
-    role: 'admin' | 'user';
+    email: string;
+
+    @Column()
+    firstName: string;
+
+    @Column()
+    lastName: string;
+
+    @Column()
+    isActive: boolean;
+
+    @Column()
+    createdAt: Date;
+
+    @Column()
+    updatedAt: Date;
+
+    @Column()
+    lastLogin: Date;
+
+    @Column()
+    isEmailVerified: boolean;
+
+    @Column()
+    role: 'admin' | 'user' | 'superadmin';
+
+    @Column({ nullable: true })
+    profilePicture: string;
+
+    @Column({ nullable: true })
+    bio: string;
+
+    @Column({ nullable: true })
+    phoneNumber: string;
+
+    @Column({ nullable: true })
+    address: string;
+
+    @Column({ nullable: true })
+    dateOfBirth: Date;
+
+    @Column({ nullable: true })
+    preferences: string; // JSON string for user preferences
+
+    @Column({ default: false })
+    isTwoFactorEnabled: boolean;
+
+    @Column({ default: false })
+    staffId: string;
+
 }

@@ -2,9 +2,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
-  imports: [
+  imports: [UploadsModule,
+
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

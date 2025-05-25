@@ -10,4 +10,10 @@ export class AuthController {
         const user = await this.authService.validateUser(body.username, body.password);
         return this.authService.login(user);
     }
+
+    // create logout
+    @Post('logout')
+    async logout(@Body() body: { refreshToken: string }) {
+        return this.authService.logout(body.refreshToken);
+    }
 }
