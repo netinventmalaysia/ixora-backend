@@ -2,12 +2,15 @@ version: '3.8'
 
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile  # Use production Dockerfile
     container_name: mbmbgo-api
     restart: always
     ports:
       - '3000:3000'
     environment:
+      NODE_ENV: production  # Important!
       DB_HOST: db
       DB_PORT: 3306
       DB_USERNAME: root
@@ -21,35 +24,27 @@ services:
       SFTP_PASS: pass
       SFTP_UPLOAD_DIR: /upload
     depends_on:
-      - db
-      - sftp
-    volumes:
-      - .:/app
-    command: npm run start:dev
+      db:
+        condition: service_healthy
+      sftp:
+        condition: service_started
+    command: npm run start:prod  # Use production command
+    # No volumes in production to avoid code overwrites
 
   db:
     image: mysql:8.0
-    container_name: mbmbgo-db
-    restart: always
-    ports:
-      - '3307:3306'
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: my_nest_app
+    ports:
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-
-  migration:
-    build: .
-    depends_on:
-      - db
-    command: npm run migration:generate -- src/migrations/Init
-    environment:
-      DB_HOST: localhost
-      DB_PORT: 3306
-      DB_USERNAME: root
-      DB_PASSWORD: rootpassword
-      DB_DATABASE: my_nest_app
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   sftp:
     image: atmoz/sftp

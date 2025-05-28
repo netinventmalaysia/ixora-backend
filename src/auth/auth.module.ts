@@ -4,7 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthController } from './auth.controller';
-import { UsersModule } from '../users/users.module';
+import { UserModule } from '../users/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
@@ -18,7 +18,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
                 signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') },
             }),
         }),
-        UsersModule,
+        UserModule,
     ],
     controllers: [AuthController],
     providers: [AuthService, JwtStrategy],

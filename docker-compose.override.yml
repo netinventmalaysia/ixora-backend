@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev  # Use the dev Dockerfile
+    container_name: mbmbgo-api
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: rootpassword
+      DB_DATABASE: my_nest_app
+      JWT_SECRET: mySuperSecretKey
+      JWT_EXPIRES_IN: 1d
+      SFTP_HOST: sftp
+      SFTP_PORT: 22
+      SFTP_USER: user
+      SFTP_PASS: pass
+      SFTP_UPLOAD_DIR: /upload
+    depends_on:
+      db:
+        condition: service_healthy
+      sftp:
+        condition: service_started
+    volumes:
+      - .:/app
+      - /app/node_modules  # Prevent overwriting container node_modules
+    command: npm run start:dev  # Start in watch mode
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: my_nest_app
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migration:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run migration:generate -- src/migrations/Init
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: rootpassword
+      DB_DATABASE: my_nest_app
+
+  sftp:
+    image: atmoz/sftp
+    container_name: mbmbgo-sftp
+    restart: always
+    ports:
+      - '2222:22'
+    volumes:
+      - sftp-data:/home/user/upload
+    command: user:pass:::upload
+
+volumes:
+  mysql-data:
+  sftp-data:
