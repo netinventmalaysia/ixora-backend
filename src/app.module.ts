@@ -3,9 +3,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UploadsModule } from './uploads/uploads.module';
+import { UserModule } from './users/user.module';
 
 @Module({
-  imports: [UploadsModule,
+  imports: [UploadsModule, UserModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({

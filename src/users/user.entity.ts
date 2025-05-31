@@ -5,39 +5,60 @@ import {
 
 import * as bcrypt from 'bcrypt';
 
+import { ApiProperty } from '@nestjs/swagger';
+
 @Entity('users')
 export class User {
+    @ApiProperty()
     @PrimaryGeneratedColumn()
     id: number;
 
+    @ApiProperty()
     @Column()
+
     username: string;
 
+    @ApiProperty()
     @Column()
+
     password: string;
 
+    @ApiProperty()
     @Column()
+
     email: string;
 
+    @ApiProperty()
     @Column()
+
     firstName: string;
 
+    @ApiProperty()
     @Column()
+
     lastName: string;
 
+    @ApiProperty()
     @Column()
+
     isActive: boolean;
 
+    @ApiProperty()
     @Column()
+
     createdAt: Date;
 
     @Column()
     updatedAt: Date;
 
+    @ApiProperty()
     @Column({ nullable: true })
+
     lastLogin: Date;
 
+    @ApiProperty()
     @Column()
+
     isEmailVerified: boolean;
 
     @Column()

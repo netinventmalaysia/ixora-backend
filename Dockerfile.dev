@@ -3,6 +3,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install
 
+# No source code copy; rely on volume mount for hot reload
 CMD ["npm", "run", "start:dev"]
