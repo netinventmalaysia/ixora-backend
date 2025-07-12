@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../users/user.service';
 import * as bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -10,24 +11,51 @@ export class AuthService {
         private jwtService: JwtService,
     ) { }
 
-    async validateUser(username: string, password: string) {
-        const user = await this.userService.findByUsername(username);
-        if (!user) throw new UnauthorizedException('Invalid username');
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) throw new UnauthorizedException('Invalid password');
-        return user;
+    async validateUser(email: string, password: string) {
+        const user = await this.userService.findByEmail(email);
+        if (user && await bcrypt.compare(password, user.password)) {
+            const { password, ...result } = user;
+            return result;
+        }
+        return null;
     }
 
-    async login(user: any) {
-        const payload = { username: user.username, sub: user.id, role: user.role };
+    async login(email: string, password: string) {
+        const user = await this.userService.findByEmail(email);
+        if (!user) throw new UnauthorizedException('User not found');
+
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+        const payload = { sub: user.id, email: user.email, role: user.role };
         return {
-            access_token: this.jwtService.sign(payload),
+            accessToken: this.jwtService.sign(payload),
+            user,
         };
     }
 
     async logout(refreshToken: string) {
-        // Implement your logout logic here, e.g., invalidate the refresh token
         return { message: 'Logged out successfully' };
     }
 
+    async guestLogin() {
+        const guestUser = {
+            id: `guest-${uuidv4()}`, // Unique guest ID
+            name: 'Guest User',
+            email: `guest-${Date.now()}@ixora.local`,
+            role: 'guest',
+        };
+
+        const payload = {
+            sub: guestUser.id,
+            email: guestUser.email,
+            role: guestUser.role,
+        };
+
+        return {
+            accessToken: this.jwtService.sign(payload),
+            user: guestUser,
+        };
+    }
 }
+

@@ -1,68 +1,56 @@
 import {
     Entity, Column, PrimaryGeneratedColumn, BeforeInsert,
-    BeforeUpdate,
+    BeforeUpdate, CreateDateColumn, UpdateDateColumn
 } from 'typeorm';
-
 import * as bcrypt from 'bcrypt';
 
-import { ApiProperty } from '@nestjs/swagger';
+export enum UserRole {
+    GUEST = 'guest',
+    PERSONAL = 'personal',
+    BUSINESS = 'business',
+    CONSULTANT = 'consultant',
+}
 
 @Entity('users')
 export class User {
-    @ApiProperty()
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ApiProperty()
     @Column()
-
     username: string;
 
-    @ApiProperty()
     @Column()
-
     password: string;
 
-    @ApiProperty()
     @Column()
-
     email: string;
 
-    @ApiProperty()
     @Column()
-
     firstName: string;
 
-    @ApiProperty()
     @Column()
-
     lastName: string;
 
-    @ApiProperty()
     @Column()
-
     isActive: boolean;
 
-    @ApiProperty()
     @Column()
+    isAccountVerified: boolean;
 
+    @CreateDateColumn()
     createdAt: Date;
 
-    @Column()
+    @UpdateDateColumn()
     updatedAt: Date;
 
-    @ApiProperty()
     @Column({ nullable: true })
-
     lastLogin: Date;
 
-    @ApiProperty()
     @Column()
-
     isEmailVerified: boolean;
 
-    @Column()
-    role: 'admin' | 'user' | 'superadmin';
+    @Column({ type: 'enum', enum: UserRole })
+    role: UserRole;
 
     @Column({ nullable: true })
     profilePicture: string;
@@ -80,13 +68,10 @@ export class User {
     dateOfBirth: Date;
 
     @Column({ nullable: true })
-    preferences: string; // JSON string for user preferences
+    preferences: string;
 
     @Column({ default: false })
     isTwoFactorEnabled: boolean;
-
-    @Column({ default: false })
-    staffId: string;
 
     @BeforeInsert()
     @BeforeUpdate()
@@ -96,5 +81,4 @@ export class User {
             this.password = await bcrypt.hash(this.password, saltRounds);
         }
     }
-
 }
