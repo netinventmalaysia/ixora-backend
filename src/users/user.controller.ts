@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Put } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiOkResponse } from '@nestjs/swagger';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from './user.service';
 import { User } from './user.entity';
 import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiTags('Users') // Group name in Swagger UI
 @Controller('users')
@@ -20,11 +21,26 @@ export class UserController {
         return plainToInstance(UserResponseDto, user);
     }
 
+
+    @Get('profile/:id')
+    async getUserById(@Param('id') id: number) {
+        console.log('Fetching user by ID:', id);
+        return this.userService.findById(id);
+    }
+
+    @Put('profile/:id')
+    async updateUser(@Param('id') id: number, @Body() dto: UpdateUserDto) {
+        console.log('Updating user with ID:', id, 'Data:', dto);
+        return this.userService.updateUser(id, dto);
+    }
+
+
     @Get(':username')
     @ApiOkResponse({ type: UserResponseDto })
     async getUser(@Param('username') username: string): Promise<UserResponseDto> {
         const user = await this.userService.findByUsername(username);
         return plainToInstance(UserResponseDto, user);
     }
+
 
 }

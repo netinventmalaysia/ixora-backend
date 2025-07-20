@@ -9,6 +9,7 @@ export enum UserRole {
     PERSONAL = 'personal',
     BUSINESS = 'business',
     CONSULTANT = 'consultant',
+    ADMIN = 'admin',
 }
 
 @Entity('users')
@@ -65,6 +66,18 @@ export class User {
     address: string;
 
     @Column({ nullable: true })
+    city: string;
+
+    @Column({ nullable: true })
+    state: string;
+
+    @Column({ nullable: true })
+    postalcode: string;
+
+    @Column({ nullable: true })
+    country: string;
+
+    @Column({ nullable: true })
     dateOfBirth: Date;
 
     @Column({ nullable: true })
@@ -73,10 +86,20 @@ export class User {
     @Column({ default: false })
     isTwoFactorEnabled: boolean;
 
+    @Column({ type: 'varchar', nullable: true })
+    resetToken: string | null;
+
+    @Column({ nullable: true, type: 'timestamp' })
+    resetTokenExpiry: Date | null;
+
     @BeforeInsert()
     @BeforeUpdate()
     async hashPassword() {
-        if (this.password) {
+        if (
+            this.password &&
+            !this.password.startsWith('$2a$') &&
+            !this.password.startsWith('$2b$')
+        ) {
             const saltRounds = 10;
             this.password = await bcrypt.hash(this.password, saltRounds);
         }

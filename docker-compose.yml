@@ -4,7 +4,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.dev  # Default Dockerfile (for prod)
+      dockerfile: Dockerfile.dev
     container_name: mbmbgo-api
     restart: always
     ports:
@@ -27,7 +27,7 @@ services:
         condition: service_healthy
       sftp:
         condition: service_started
-    command: npm run start:prod  # Default to production command
+    command: npm run start:prod
 
   db:
     image: mysql:8.0
@@ -54,6 +54,8 @@ services:
     volumes:
       - sftp-data:/home/user/upload
     command: user:pass:::upload
+    environment:
+      SFTP_POSTEXEC: "mkdir -p /upload && chown -R user:sftp /upload"
 
   migration:
     build: .

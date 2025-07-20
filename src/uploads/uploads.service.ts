@@ -16,22 +16,32 @@ export class UploadsService {
         const port = +this.configService.get('SFTP_PORT');
         const username = this.configService.get('SFTP_USER');
         const password = this.configService.get('SFTP_PASS');
-        const uploadDir = this.configService.get('SFTP_UPLOAD_DIR');
+        const uploadRoot = this.configService.get('SFTP_UPLOAD_DIR');
 
-        // Extract file extension
+        console.log('SFTP USER:', username);
+        console.log('Uploading to SFTP:', host, port, uploadRoot);
+
+        const safeFolder = folder.replace(/\.\./g, '').replace(/^\/+/, '');
+        const remoteFolderPath = path.posix.join(uploadRoot, safeFolder);
+
         const ext = path.extname(file.originalname);
         const nameWithoutExt = path.basename(file.originalname, ext);
-
-        // Generate unique filename with timestamp
         const timestamp = Date.now();
-        const newFilename = `${nameWithoutExt}_${timestamp}${ext}`;
-        const remotePath = `${uploadDir}/${folder}/${newFilename}`;
+        const newFilename = `${timestamp}${ext}`
+        const remoteFilePath = path.posix.join(remoteFolderPath, newFilename);
+
+        console.log('Creating folder:', remoteFolderPath);
+        console.log('Uploading file:', remoteFilePath);
 
         await this.sftp.connect({ host, port, username, password });
-        await this.sftp.mkdir(`${uploadDir}/${folder}`, true); // Recursive mkdir
-        await this.sftp.put(file.buffer, remotePath);
-        await this.sftp.end();
 
-        return remotePath;
+        try {
+            await this.sftp.mkdir(remoteFolderPath, true);
+            await this.sftp.put(file.buffer, remoteFilePath);
+        } finally {
+            await this.sftp.end();
+        }
+
+        return `${safeFolder}/${newFilename}`;
     }
 }

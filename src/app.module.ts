@@ -6,9 +6,12 @@ import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './users/user.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
+import { BusinessModule } from './business/registration/business.module';
+import { SftpModule } from './sftp/sftp.module';
+import { TeamModule } from './business/team/team.module';
 
 @Module({
-  imports: [UploadsModule, UserModule, AuthModule, MailModule,
+  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({

@@ -9,4 +9,5 @@ export class MailController {
     async test(@Query('to') to: string) {
         return this.mailService.sendTestEmail(to);
     }
+
 }
