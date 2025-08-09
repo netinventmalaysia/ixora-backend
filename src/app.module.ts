@@ -9,9 +9,10 @@ import { MailModule } from './mail/mail.module';
 import { BusinessModule } from './business/registration/business.module';
 import { SftpModule } from './sftp/sftp.module';
 import { TeamModule } from './business/team/team.module';
+import { HooksModule } from './hooks/hooks.module';
 
 @Module({
-  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule,
+  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
