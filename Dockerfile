@@ -1,24 +1,29 @@
-FROM node:18-alpine AS builder
+# ---- Builder ----
+FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Install deps using lockfile for reproducibility
+COPY package*.json ./
+RUN npm ci
+
+# Copy source and build
 COPY . .
-
-RUN npm install
-
-# 👉 Add this to fix "nest: Permission denied"
-RUN chmod -R +x node_modules/.bin
-
 RUN npm run build
 
-# Optional: Run migration here if you want
-# RUN npx typeorm migration:run
-
-# Runtime Stage (Optional if you use multi-stage builds)
-FROM node:18-alpine AS runtime
+# ---- Runner ----
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.env .env
+ENV NODE_ENV=production
+ENV PORT=3000
 
+# Install only production deps
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy compiled output
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 3000
+# Match your package.json "start:prod": node dist/main
 CMD ["node", "dist/main"]
