@@ -1,6 +1,9 @@
 // crypto polyfill for bcrypt on WebCrypto
-import * as crypto from 'crypto';
-(global as any).crypto = crypto;
+import { webcrypto as crypto } from 'crypto';
+
+if (typeof globalThis.crypto === 'undefined') {
+  (globalThis as any).crypto = crypto;
+}
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -32,6 +35,8 @@ async function bootstrap() {
     { path: '/auth/verify-reset-token', method: 'GET' },
     { path: '/auth/reset-password', method: 'POST' },
     { path: '/users', method: 'POST' },
+    { path: '/hooks/ixora-backend', method: 'POST' }, 
+    { path: '/hooks/ixora-backend', method: 'GET' },
   ];
 
   app.use((req: Request, res: Response, next: NextFunction) => {
