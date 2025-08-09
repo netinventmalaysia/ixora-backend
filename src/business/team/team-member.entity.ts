@@ -1,5 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
-
+import {
+    Entity,
+    Column,
+    PrimaryGeneratedColumn,
+    CreateDateColumn,
+    ManyToOne,
+    JoinColumn,
+} from 'typeorm';
+import { Business } from '../registration/business.entity';
+import { User } from 'src/users/user.entity';
 @Entity('team_members')
 export class TeamMember {
     @PrimaryGeneratedColumn()
@@ -8,8 +16,16 @@ export class TeamMember {
     @Column()
     businessId: number;
 
+    @ManyToOne(() => Business)
+    @JoinColumn({ name: 'businessId' })
+    business: Business;
+
     @Column({ nullable: true })
     userId: number;
+
+    @ManyToOne(() => User, { nullable: true })
+    @JoinColumn({ name: 'userId' })
+    user: User;
 
     @Column()
     email: string;
@@ -20,7 +36,7 @@ export class TeamMember {
     @Column({ nullable: true })
     invitedBy: number;
 
-    @Column()
+    @Column({ nullable: true })
     status: string;
 
     @CreateDateColumn()

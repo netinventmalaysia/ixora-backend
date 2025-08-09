@@ -23,6 +23,14 @@ export class CreateUserDto {
     @IsString()
     lastName: string;
 
+    @ApiProperty()
+    @IsString()
+    identificationType: string;
+
+    @ApiProperty()
+    @IsString()
+    identificationNumber: string;
+
     // @ApiProperty()
     // @IsBoolean()
     // isActive: boolean;
@@ -46,6 +54,27 @@ export class CreateUserDto {
     @IsOptional()
     @IsString()
     address?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    city?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    state?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    postalcode?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    country?: string;
+
 
     @ApiPropertyOptional({ type: String, format: 'date-time' })  // Optional date field
     @IsOptional()

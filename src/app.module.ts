@@ -17,7 +17,7 @@ import { TeamModule } from './business/team/team.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'mysql',
+        type: 'mariadb',
         host: config.get('DB_HOST'),
         port: parseInt(config.get('DB_PORT') || '3306', 10),
         username: config.get('DB_USERNAME'),

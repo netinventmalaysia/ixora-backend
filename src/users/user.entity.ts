@@ -12,6 +12,13 @@ export enum UserRole {
     ADMIN = 'admin',
 }
 
+export enum UserIdType {
+    OLD_IC = 'old_ic',
+    NEW_IC = 'new_ic',
+    PASSPORT = 'passport',
+    TENTERA = 'tentera',
+};
+
 @Entity('users')
 export class User {
     @PrimaryGeneratedColumn()
@@ -25,6 +32,12 @@ export class User {
 
     @Column()
     email: string;
+
+    @Column({ type: 'enum', enum: UserIdType })
+    identificationType: string;
+
+    @Column()
+    identificationNumber: string;
 
     @Column()
     firstName: string;
@@ -91,6 +104,12 @@ export class User {
 
     @Column({ nullable: true, type: 'timestamp' })
     resetTokenExpiry: Date | null;
+
+    @Column({ nullable: true })
+    verificationToken: string;
+
+    @Column({ type: 'datetime', nullable: true })
+    verificationTokenExpires: Date;
 
     @BeforeInsert()
     @BeforeUpdate()
