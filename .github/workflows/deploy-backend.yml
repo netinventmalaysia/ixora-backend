@@ -57,20 +57,24 @@ jobs:
   trigger-webhook:
     runs-on: ubuntu-latest
     needs: build-and-push
+    concurrency:
+      group: deploy-backend
+      cancel-in-progress: true
     steps:
-      - name: Trigger aaPanel webhook (retry up to 3 times)
+      - name: Trigger aaPanel webhook (retry up to 5 times)
+        env:
+          WEBHOOK_URL: ${{ secrets.AAPANEL_WEBHOOK_URL }}
         run: |
-          WEBHOOK_URL="https://ixora.mbmb.gov.my/hook?access_key=ZzP1UKwDkor5aeRUsXyP3ZIrScTduJOE7KtcddDFj3lJ0Ez5"
-
-          for i in {1..3}; do
-            echo "GET ${WEBHOOK_URL} (attempt $i/3)"
-            if curl -v --connect-timeout 20 --max-time 120 "${WEBHOOK_URL}"; then
-              echo "Webhook OK"
-              exit 0
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "AAPANEL_WEBHOOK_URL not set"; exit 1;
+          fi
+          for i in {1..5}; do
+            echo "GET ${WEBHOOK_URL} (attempt $i/5)"
+            if curl -fsSL --connect-timeout 20 --max-time 120 "${WEBHOOK_URL}"; then
+              echo "Webhook OK"; exit 0
             fi
             echo "Retrying in 8s..."
             sleep 8
           done
-
           echo "Webhook failed after retries" >&2
           exit 1
