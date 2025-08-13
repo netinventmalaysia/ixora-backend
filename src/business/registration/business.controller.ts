@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, UseGuards, Param } from '@nestjs/common';
 import { BusinessService } from './business.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -12,13 +12,29 @@ export class BusinessController {
     constructor(private readonly businessService: BusinessService) { }
 
     @Post()
-    async register(@Body() dto: CreateBusinessDto) {
-        return this.businessService.create(dto);
+    @Roles('business', 'personal')
+    async register(@Req() req: any, @Body() dto: CreateBusinessDto) {
+        const userId = req.user.userId;
+        console.log('Registering business for user ID:', userId);
+        console.log('Business data:', dto);
+        return this.businessService.create({ ...dto, userId });
     }
+
     @Get('/registered')
     @Roles('admin', 'business', 'personal')
     async getMyBusinesses(@Req() req: any) {
         const userId = req.user.id;
         return this.businessService.findAllMappedByUser(userId);
     }
+
+    @Get(':id')
+    @Roles('admin', 'business', 'personal')
+    async getBusinessById(@Param('id') id: string) {
+        // If your service expects a number:
+        const businessId = parseInt(id, 10);
+        const data = await this.businessService.findById(businessId);
+        return data;
+    }
 }
+
+

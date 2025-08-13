@@ -49,4 +49,19 @@ export class MailService {
                     `,
         });
     }
+    async sendVerificationEmail(email: string, verificationToken: string) {
+        const verificationUrl = `https://mbmb.com/verify-email?token=${verificationToken}`;
+
+        return this.mailerService.sendMail({
+            to: email,
+            subject: 'Verify Your MBMB Account',
+            html: `
+                <h3>Hello,</h3>
+                <p>Thank you for registering with MBMB. Please verify your email address by clicking the link below:</p>
+                <p><a href="${verificationUrl}" target="_blank">${verificationUrl}</a></p>
+                <p>If you did not create an account, you can ignore this email.</p>
+                <p>Thank you,<br />MBMB Support Team</p>
+            `,
+        });
+    }
 }

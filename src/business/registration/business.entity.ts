@@ -6,6 +6,9 @@ export class Business {
     id: number;
 
     @Column()
+    userId: number;
+
+    @Column()
     companyName: string;
 
     @Column()

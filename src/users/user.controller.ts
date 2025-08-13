@@ -17,7 +17,8 @@ export class UserController {
     @ApiBody({ type: CreateUserDto })
     @ApiOkResponse({ type: UserResponseDto })
     async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
-        const user = this.userService.createUser(createUserDto);
+        console.log('Creating user with data:', createUserDto);
+        const user = await this.userService.createUser(createUserDto);
         return plainToInstance(UserResponseDto, user);
     }
 

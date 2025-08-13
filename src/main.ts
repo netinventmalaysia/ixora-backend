@@ -1,84 +1,95 @@
+// crypto polyfill for bcrypt on WebCrypto
 import * as crypto from 'crypto';
 (global as any).crypto = crypto;
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 import * as cookieParser from 'cookie-parser';
 import * as csurf from 'csurf';
-import { NextFunction } from 'express';
-import { Request, Response } from 'express';
-import path from 'path';
+import { Request, Response, NextFunction } from 'express';
+import { ValidationPipe } from '@nestjs/common';
+import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: ['log', 'error', 'warn', 'debug', 'verbose'],
-  });
+  const app = await NestFactory.create(AppModule);
 
-  // Allow frontend to send credentials (cookies)
+  // 1. Enable CORS
   app.enableCors({
-    origin: 'http://localhost:3001', // Adjust if in prod
+    origin: 'http://localhost:3001',
     credentials: true,
   });
 
-  // app.enableCors({
-  //   origin: 'http://localhost:3000',  // ✅ Must match frontend origin
-  //   credentials: true,                // ✅ Must be true for cookies
-  // });
-
-  //Correct order: cookieParser MUST come before csurf
+  // 2. Cookie parser
   app.use(cookieParser());
 
-  // Define paths that bypass CSRF
+  // 3. Excluded paths
   const csrfExcludedPaths = [
-    { path: '/users', method: 'POST' },
     { path: '/auth/login', method: 'POST' },
+    { path: '/auth/logout', method: 'POST' },
+    { path: '/uploads/file', method: 'POST' },
     { path: '/auth/guest-login', method: 'POST' },
     { path: '/auth/forgot-password', method: 'POST' },
     { path: '/auth/verify-reset-token', method: 'GET' },
     { path: '/auth/reset-password', method: 'POST' },
-    { path: '/auth/logout', method: 'POST' },
-    { path: '/uploads/file', method: 'POST' },
+    { path: '/users', method: 'POST' },
   ];
 
-  app.useLogger(['log', 'debug', 'error', 'warn']);
-
-  // CSRF exclusion middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
     const isExcluded = csrfExcludedPaths.some(
       (route) => route.path === req.path && route.method === req.method,
     );
     if (isExcluded) {
-      console.log('CSRF Skipped:', req.path, req.method);
+      console.log(`[CSRF] Skipped for ${req.method} ${req.path}`);
       return next();
     }
+
+    console.log(`[CSRF] Checking for ${req.method} ${req.path}`);
+    if (!req.cookies['_csrf']) {
+      console.warn('⚠️ CSRF cookie "_csrf" not set yet');
+    }
+
     return csurf({
       cookie: {
-        httpOnly: false, // optional - make true in production
-        sameSite: 'none',
-        secure: process.env.NODE_ENV === 'production',
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: false,
       },
       value: (req) => req.headers['x-csrf-token'] as string || '',
     })(req, res, next);
   });
 
-  // Global validation and error handling
+
+  // 5. CSRF error handler with reason
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+      console.error('❌ CSRF Error — invalid token');
+      console.error('→ [Expected] Cookie _csrf:', req.cookies['_csrf']);
+      console.error('→ [Provided] Header x-csrf-token:', req.headers['x-csrf-token']);
+
+      // If you're using csurf with secret stored on req
+      if ((req as any).csrfToken && typeof (req as any).csrfToken === 'function') {
+        try {
+          const currentToken = (req as any).csrfToken();
+          console.log('→ [Current Generated Token]:', currentToken);
+        } catch (e) {
+          console.log('→ Unable to generate token:', e.message);
+        }
+      } else {
+        console.log('→ req.csrfToken is not available');
+      }
+
+      return res.status(403).json({ message: 'Invalid CSRF token' });
+    }
+    next(err);
+  });
+
+  // 6. Global stuff
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Swagger
-  const config = new DocumentBuilder()
-    .setTitle('MBMB GO API')
-    .setDescription('API documentation') // duplicated line removed
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
-
-  await app.listen(process.env.PORT || 3000);
+  // 7. Start app
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`🚀 Server is running on http://localhost:${port}`);
 }
 bootstrap();

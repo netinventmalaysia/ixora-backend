@@ -32,4 +32,16 @@ export class BusinessService {
 
         return businesses.map(mapBusinessToListItem);
     }
+
+    async findById(id: number) {
+        const business = await this.businessRepo.findOne({
+            where: { id },
+        });
+
+        if (!business) {
+            throw new Error('Business not found');
+        }
+
+        return business;
+    }
 }
