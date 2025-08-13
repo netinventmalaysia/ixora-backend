@@ -9,15 +9,16 @@ import { MailModule } from './mail/mail.module';
 import { BusinessModule } from './business/registration/business.module';
 import { SftpModule } from './sftp/sftp.module';
 import { TeamModule } from './business/team/team.module';
+import { HooksModule } from './hooks/hooks.module';
 
 @Module({
-  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule,
+  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'mysql',
+        type: 'mariadb',
         host: config.get('DB_HOST'),
         port: parseInt(config.get('DB_PORT') || '3306', 10),
         username: config.get('DB_USERNAME'),

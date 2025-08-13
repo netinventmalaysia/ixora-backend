@@ -8,68 +8,36 @@ services:
     container_name: mbmbgo-api
     restart: always
     ports:
-      - '3000:3000'
+      - '3200:3000'  # Host:Container
+    environment:
+      PORT: 3000
+      DB_HOST: 172.17.10.66
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: rootpassword
+      DB_DATABASE: my_nest_app
+      JWT_SECRET: mySuperSecretKey
+      JWT_EXPIRES_IN: 1d
+      NODE_ENV: production
+      MAIL_USER: ixora@mbmb.gov.my
+      MAIL_PASS: eipigyeqqknzltqf
+      FRONTEND_URL: https://ixora.mbmb.gov.my
+      SFTP_HOST: 172.17.10.66
+      SFTP_PORT: 22
+      SFTP_USER: ixora
+      SFTP_PASS: mP82AprjHSzawDJ5
+      SFTP_UPLOAD_DIR: /upload
+    command: npm run start:prod
+
+  migration:
+    build: .
+    depends_on:
+      api:
+        condition: service_started
+    command: npm run migration:generate -- src/migrations/Init
     environment:
       DB_HOST: 172.17.10.66
       DB_PORT: 3306
       DB_USERNAME: ixora-db
       DB_PASSWORD: PGR2NNFdJDJZGShi
       DB_DATABASE: ixora-prod
-      JWT_SECRET: mySuperSecretKey
-      JWT_EXPIRES_IN: 1d
-      SFTP_HOST: sftp
-      SFTP_PORT: 22
-      SFTP_USER: user
-      SFTP_PASS: pass
-      SFTP_UPLOAD_DIR: /upload
-    depends_on:
-      db:
-        condition: service_healthy
-      sftp:
-        condition: service_started
-    command: npm run start:prod
-
-  db:
-    image: mysql:8.0
-    container_name: mbmbgo-db
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: my_nest_app
-    ports:
-      - '3307:3306'
-    volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  sftp:
-    image: atmoz/sftp
-    container_name: mbmbgo-sftp
-    restart: always
-    ports:
-      - '2222:22'
-    volumes:
-      - sftp-data:/home/user/upload
-    command: user:pass:::upload
-    environment:
-      SFTP_POSTEXEC: "mkdir -p /upload && chown -R user:sftp /upload"
-
-  migration:
-    build: .
-    depends_on:
-      db:
-        condition: service_healthy
-    command: npm run migration:generate -- src/migrations/Init
-    environment:
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_USERNAME: root
-      DB_PASSWORD: rootpassword
-      DB_DATABASE: my_nest_app
-
-volumes:
-  mysql-data:
-  sftp-data:

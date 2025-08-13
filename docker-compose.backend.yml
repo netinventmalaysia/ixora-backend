@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  api:
+    container_name: mbmbgo-api
+    image: ghcr.io/netinventmalaysia/ixora-backend:prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "3200:3000"
+    command: node dist/main.js
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

@@ -1,6 +1,9 @@
 // crypto polyfill for bcrypt on WebCrypto
-import * as crypto from 'crypto';
-(global as any).crypto = crypto;
+import { webcrypto as crypto } from 'crypto';
+
+if (typeof globalThis.crypto === 'undefined') {
+  (globalThis as any).crypto = crypto;
+}
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -15,7 +18,7 @@ async function bootstrap() {
 
   // 1. Enable CORS
   app.enableCors({
-    origin: 'http://localhost:3001',
+    origin: ['http://localhost:3001', 'http://172.17.10.66:3100', 'https://ixora.mbmb.gov.my', 'http://172.17.10.11'],
     credentials: true,
   });
 
@@ -32,6 +35,8 @@ async function bootstrap() {
     { path: '/auth/verify-reset-token', method: 'GET' },
     { path: '/auth/reset-password', method: 'POST' },
     { path: '/users', method: 'POST' },
+    { path: '/hooks/ixora-backend', method: 'POST' },
+    { path: '/hooks/ixora-backend', method: 'GET' },
   ];
 
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -89,7 +94,7 @@ async function bootstrap() {
 
   // 7. Start app
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 Server is running on http://localhost:${port}`);
 }
 bootstrap();
