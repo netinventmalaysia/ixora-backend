@@ -5,46 +5,53 @@ STACK_DIR="/www/wwwroot/ixora/backend"
 COMPOSE_FILE="$STACK_DIR/docker-compose.backend.yml"
 LOG_FILE="/tmp/ixora-deploy.log"
 
-echo "[$(date -Is)] --- deploy start ---" | tee -a "$LOG_FILE"
+# Enable shell trace to the log (not to stdout)
+{
+  exec {TRACE_FD}>>"$LOG_FILE" || true
+  export BASH_XTRACEFD=$TRACE_FD
+  export PS4='+ [${EPOCHREALTIME}] ${BASH_SOURCE##*/}:${LINENO}: '
+  set -x
+} 2>/dev/null || true
 
-cd "$STACK_DIR"
+{
+  echo "[$(date -Is)] --- deploy start ---"
 
-# --- 0) sanity checks
-[ -f "$COMPOSE_FILE" ] || { echo "Compose not found: $COMPOSE_FILE" | tee -a "$LOG_FILE"; exit 1; }
-[ -f ".env.production" ] || { echo "Missing .env.production" | tee -a "$LOG_FILE"; exit 1; }
+  # Prevent concurrent runs
+  exec 9>/tmp/ixora-deploy.lock
+  flock -n 9 || { echo "Another deploy is running. Exit."; exit 1; }
 
-# --- 1) sync working tree from GitHub (optional if .git exists)
-if [ -d ".git" ]; then
-  echo ">>> Git sync (origin/main)" | tee -a "$LOG_FILE"
-  # Ensure correct ownership (prevents permission errors if root touched files)
-  chown -R "$(id -u)":"$(id -g)" . >/dev/null 2>&1 || true
+  echo ">>> Step 0: cd to $STACK_DIR"
+  cd "$STACK_DIR"
 
-  # Be explicit about remote (in case it was HTTP before)
-  # git remote set-url origin git@github.com:netinventmalaysia/ixora-backend.git || true
+  echo ">>> Step 0a: sanity checks"
+  [ -f "$COMPOSE_FILE" ] || { echo "Compose not found: $COMPOSE_FILE"; exit 1; }
+  [ -f ".env.production" ] || { echo "Missing .env.production"; exit 1; }
 
-  # Clean untracked and reset to remote main
-  git clean -fd
-  git fetch --all --prune
-  git reset --hard origin/main
-else
-  echo ">>> No .git found here; skipping git sync" | tee -a "$LOG_FILE"
-fi
+  # Git can hang if it prompts for creds; disable prompts and set a timeout
+  if [ -d ".git" ]; then
+    echo ">>> Git sync (origin/main)"
+    git config --local credential.helper "!"        # disable helper
+    export GIT_ASKPASS=/bin/true
+    export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=10"
 
-# --- 2) pull image & recreate
-echo ">>> Pull latest image" | tee -a "$LOG_FILE"
-docker compose -f "$COMPOSE_FILE" pull
+    timeout 60s git clean -fd || echo "git clean timeout (continuing)"
+    timeout 60s git fetch --all --prune || echo "git fetch timeout (continuing)"
+    timeout 60s git reset --hard origin/main || echo "git reset timeout (continuing)"
+  else
+    echo ">>> No .git found here; skipping git sync"
+  fi
 
-echo ">>> Recreate containers" | tee -a "$LOG_FILE"
-docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+  echo ">>> Pull latest image (60s timeout)"
+  timeout 60s docker compose -f "$COMPOSE_FILE" pull || echo "compose pull timeout (continuing)"
 
-# --- 3) migrations
-echo ">>> Run DB migrations" | tee -a "$LOG_FILE"
-# Do not fail whole deploy if migrations say "No migrations are pending"
-docker compose -f "$COMPOSE_FILE" run --rm api npm run migration:run:prod || true
+  echo ">>> Recreate containers (60s timeout)"
+  timeout 60s docker compose -f "$COMPOSE_FILE" up -d --remove-orphans || echo "compose up timeout (continuing)"
 
-# --- 4) cleanup
-echo ">>> Cleanup old images" | tee -a "$LOG_FILE"
-docker image prune -f >/dev/null 2>&1 || true
+  echo ">>> Run DB migrations (120s timeout)"
+  timeout 120s docker compose -f "$COMPOSE_FILE" run --rm api npm run migration:run:prod || echo "migrations failed/none (continuing)"
 
-echo "[$(date -Is)] --- deploy done ---" | tee -a "$LOG_FILE"
+  echo ">>> Cleanup old images"
+  docker image prune -f >/dev/null 2>&1 || true
 
+  echo "[$(date -Is)] --- deploy done ---"
+} | tee -a "$LOG_FILE"
