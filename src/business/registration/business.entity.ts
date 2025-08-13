@@ -38,6 +38,12 @@ export class Business {
     @Column()
     accountType: string; // 'business' or 'organisation'
 
+    @Column()
+    invitationToken: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    invitationTokenExpires: Date;
+
     @CreateDateColumn()
     createdAt: Date;
 

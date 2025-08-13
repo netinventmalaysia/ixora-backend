@@ -4,6 +4,8 @@ import { TeamMember } from './team-member.entity';
 import { Repository } from 'typeorm';
 import { MailService } from 'src/mail/mail.service';
 import { Business } from '../registration/business.entity';
+import { v4 as uuidv4 } from 'uuid';
+import { addMinutes } from 'date-fns';
 
 @Injectable()
 export class TeamService {
@@ -28,7 +30,13 @@ export class TeamService {
 
         // ✅ Fetch business name first (Assuming you have BusinessRepo injected)
         const business = await this.businessRepo.findOne({ where: { id: businessId } });
+        const token = uuidv4();
+        const expiry = addMinutes(new Date(), 15); // expires in 15 mins
         if (!business) throw new Error('Business not found');
+
+        business.invitationToken = token;
+        business.invitationTokenExpires = expiry;
+        await this.businessRepo.save(business);
 
         const member = this.teamRepo.create({
             businessId,
@@ -36,11 +44,12 @@ export class TeamService {
             role: 'business',
             invitedBy,
         });
-        await this.teamRepo.save(member);
 
+        await this.teamRepo.save(member);
+        const invitationUrl = `${process.env.FRONTEND_URL}/business-invite?token=${token}`;
         await this.mailService.sendInviteEmail(email, {
-            businessId,
             name: business.companyName,
+            invitationUrl,
         });
 
         return member;
@@ -60,3 +69,4 @@ export class TeamService {
         return this.teamRepo.remove(member);
     }
 }
+

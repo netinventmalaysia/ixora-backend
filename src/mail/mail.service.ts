@@ -28,9 +28,8 @@ export class MailService {
         });
     }
 
-    async sendInviteEmail(email: string, context: { name: string; businessId: number }) {
+    async sendInviteEmail(email: string, context: { name: string; invitationUrl: string }) {
         const businessName = context.name || 'a business';
-        const businessId = context.businessId;
 
         return this.mailerService.sendMail({
             to: email,
@@ -40,7 +39,7 @@ export class MailService {
                     <p>You have been invited to join the team <strong>${businessName}</strong> on Ixora (Powered by MBMB).</p>
                     <p>Click the link below to accept the invitation:</p>
                     <p>
-                        <a href="https://mbmb.com/accept-invite?businessId=${businessId}" target="_blank" rel="noopener noreferrer">
+                        <a href="${context.invitationUrl}" target="_blank" rel="noopener noreferrer">
                         Accept Invitation
                         </a>
                     </p>
