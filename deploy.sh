@@ -6,22 +6,23 @@ set -euo pipefail
 ########################################
 STACK_DIR="/www/wwwroot/ixora/backend"
 COMPOSE_FILE="$STACK_DIR/docker-compose.backend.yml"
-LOG_FILE="/var/log/ixora-deploy.log"             # use /tmp/... if you prefer
-SERVICE_NAME="api"                                # docker compose service running your app
+LOG_FILE="/var/log/ixora-deploy.log"
+SERVICE_NAME="api"
 
-# TypeORM generate settings (adjust to your project layout/cli)
-# Old TypeORM (<=0.3) examples (ts-node):  npm run typeorm -- migration:generate ./src/migrations/Name -d ./src/data-source.ts
-# Newer TypeORM CLI:                       npx typeorm migration:generate ./src/migrations/Name -d ./src/data-source.ts
-TYPEORM_GENERATE_CMD=(npm run typeorm --)        # change to (npx typeorm) if you use the new CLI
-TYPEORM_RUN_SCRIPT="migration:run:prod"          # npm script that runs production migrations
+# Optional: set to your remote to auto-clone if not a repo (SSH recommended)
+# export GIT_REMOTE="git@github.com:netinventmalaysia/ixora-backend.git"
+GIT_REMOTE="${GIT_REMOTE:-}"
 
-MIGRATIONS_DIR="./src/migrations"                # where to write migration files
-TYPEORM_DATASOURCE="./src/data-source.ts"        # your DataSource file (ts or js)
+# TypeORM generate/run settings
+TYPEORM_GENERATE_CMD=(npm run typeorm --)        # or: (npx typeorm)
+TYPEORM_RUN_SCRIPT="migration:run:prod"
+MIGRATIONS_DIR="./src/migrations"
+TYPEORM_DATASOURCE="./src/data-source.ts"
 
 # Behavior toggles
-GENERATE_MIGRATION="${GENERATE_MIGRATION:-1}"    # set to 0 to skip generation
-RUN_MIGRATIONS="${RUN_MIGRATIONS:-1}"            # set to 0 to skip running migrations
-PRUNE_IMAGES="${PRUNE_IMAGES:-1}"                # set to 0 to skip docker image prune
+GENERATE_MIGRATION="${GENERATE_MIGRATION:-1}"
+RUN_MIGRATIONS="${RUN_MIGRATIONS:-1}"
+PRUNE_IMAGES="${PRUNE_IMAGES:-1}"
 DOCKER_TIMEOUT_PULL="90s"
 DOCKER_TIMEOUT_UP="90s"
 MIGRATE_TIMEOUT="180s"
@@ -30,17 +31,13 @@ GENERATE_TIMEOUT="120s"
 ########################################
 # Tracing & logging
 ########################################
-# Shell xtrace to the log (not stdout)
 {
   exec {TRACE_FD}>>"$LOG_FILE" || true
   export BASH_XTRACEFD=$TRACE_FD
   export PS4='+ [${EPOCHREALTIME}] ${BASH_SOURCE##*/}:${LINENO}: '
   set -x
 } 2>/dev/null || true
-
-# Also tee main steps to log
 exec > >(tee -a "$LOG_FILE") 2>&1
-
 ts() { date -Is; }
 
 cleanup() {
@@ -76,33 +73,47 @@ echo "[$(ts)] >>> Step 0a: sanity checks"
 [[ -f ".env.production" ]] || { echo "Missing .env.production"; exit 1; }
 
 ########################################
-# Git sync (public repo ok; private needs creds/SSH)
+# Git sync (robust)
 ########################################
-if [[ -d ".git" ]]; then
+if git -C "$STACK_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "[$(ts)] >>> Git sync (origin/main)"
-  # Prevent interactive prompts that would hang
-  git config --local credential.helper "!"
+  # prevent interactive prompts
+  git -C "$STACK_DIR" config --local credential.helper "!" || true
   export GIT_ASKPASS=/bin/true
   export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=10"
 
-  timeout 60s git clean -fd
-  timeout 60s git fetch --all --prune
-  timeout 60s git reset --hard origin/main
+  timeout 60s git -C "$STACK_DIR" clean -fd
+  timeout 60s git -C "$STACK_DIR" fetch --all --prune
+  timeout 60s git -C "$STACK_DIR" reset --hard origin/main
 else
-  echo "[$(ts)] >>> No .git found here; skipping git sync"
+  echo "[$(ts)] >>> Not a git repo at $STACK_DIR"
+  if [[ -n "$GIT_REMOTE" ]]; then
+    echo "[$(ts)] >>> Auto-clone from $GIT_REMOTE"
+    # If directory is non-empty and not a repo, move it aside to avoid conflicts
+    if [[ -z "$(ls -A "$STACK_DIR" 2>/dev/null)" ]]; then
+      :
+    else
+      echo "[$(ts)] >>> $STACK_DIR not empty. Moving to backup..."
+      BACKUP_DIR="${STACK_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
+      mv "$STACK_DIR" "$BACKUP_DIR"
+      mkdir -p "$STACK_DIR"
+      echo "[$(ts)] >>> Original moved to $BACKUP_DIR"
+    fi
+    timeout 120s git clone --depth=1 "$GIT_REMOTE" "$STACK_DIR"
+    echo "[$(ts)] >>> Clone completed"
+  else
+    echo "[$(ts)] !!! No repo found and GIT_REMOTE not set. Skipping git sync."
+  fi
 fi
 
 ########################################
-# (Optional) Generate migration from current code
+# (Optional) Generate migration
 ########################################
 if [[ "$GENERATE_MIGRATION" == "1" ]]; then
   echo "[$(ts)] >>> Generate migration file (TypeORM)"
   MIG_NAME="AutoMigration_$(date +%Y%m%d_%H%M%S)"
-  # Ensure dir exists
   mkdir -p "$MIGRATIONS_DIR"
 
-  # Run inside a one-off container that has your build environment
-  # Adjust the command for your CLI if needed
   timeout "$GENERATE_TIMEOUT" \
     docker compose -f "$COMPOSE_FILE" run --rm "$SERVICE_NAME" \
       "${TYPEORM_GENERATE_CMD[@]}" migration:generate \
@@ -127,7 +138,6 @@ timeout "$DOCKER_TIMEOUT_UP" docker compose -f "$COMPOSE_FILE" up -d --remove-or
 ########################################
 if [[ "$RUN_MIGRATIONS" == "1" ]]; then
   echo "[$(ts)] >>> Run DB migrations"
-  # Prefer exec so it runs in the existing container/network/env
   timeout "$MIGRATE_TIMEOUT" docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE_NAME" npm run "$TYPEORM_RUN_SCRIPT"
 else
   echo "[$(ts)] >>> Skip running migrations (RUN_MIGRATIONS=0)"
