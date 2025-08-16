@@ -47,7 +47,7 @@ jobs:
           platforms: linux/amd64
           build-args: |
             NEST_PUBLIC_BUILD_SHA=${{ github.sha }}
-            NEST_PUBLIC_BUILD_TIME=${{ steps.meta.outputs.created }}
+            NEST_PUBLIC_BUILD_TIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
