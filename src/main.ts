@@ -18,7 +18,8 @@ async function bootstrap() {
   // 1) CORS
   app.enableCors({
     origin: [
-      'https://ixora.mbmb.gov.my'
+      'https://ixora.mbmb.gov.my',
+      'http://localhost:3001'
     ],
     credentials: true,
   });
