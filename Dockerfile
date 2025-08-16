@@ -8,6 +8,13 @@ RUN npm ci
 
 # Copy source and build
 COPY . .
+
+# accept build-time envs for Nest.js
+ARG NEST_PUBLIC_BUILD_SHA
+ARG NEST_PUBLIC_BUILD_TIME
+ENV NEST_PUBLIC_BUILD_SHA=$NEST_PUBLIC_BUILD_SHA \
+    NEST_PUBLIC_BUILD_TIME=$NEST_PUBLIC_BUILD_TIME
+
 RUN npm run build
 
 # ---- Runner ----
