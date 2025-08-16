@@ -42,6 +42,9 @@ export class Business {
     status: string;
 
     @Column()
+    userId: number;
+
+    @Column()
     invitationToken: string;
 
     @Column({ type: 'timestamp', nullable: true })
