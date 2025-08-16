@@ -18,10 +18,7 @@ async function bootstrap() {
   // 1) CORS
   app.enableCors({
     origin: [
-      'http://localhost:3001',
-      'http://172.17.10.66:3100',
-      'https://ixora.mbmb.gov.my',
-      'http://172.17.10.11',
+      'https://ixora.mbmb.gov.my'
     ],
     credentials: true,
   });
@@ -85,8 +82,8 @@ async function bootstrap() {
   // Simple version endpoint
   server.get('/version', (_req: Request, res: Response) => {
     res.json({
-      sha: process.env.IMAGE_REVISION || process.env.GIT_SHA || 'unknown',
-      builtAt: process.env.IMAGE_CREATED || 'unknown',
+      sha: process.env.NEST_PUBLIC_BUILD_SHA || 'unknown',
+      builtAt: process.env.NEST_PUBLIC_BUILD_TIME || 'unknown',
     });
   });
 
