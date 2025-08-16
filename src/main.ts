@@ -12,6 +12,8 @@ import * as csurf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
+import express from 'express';
+const version = express();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -96,5 +98,12 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`🚀 Server is running on http://localhost:${port}`);
+
+  version.get('/version', (_req, res) => {
+      res.json({
+        sha: process.env.IMAGE_REVISION || process.env.GIT_SHA || 'unknown',
+        builtAt: process.env.IMAGE_CREATED || 'unknown',
+      });
+    });
 }
 bootstrap();
