@@ -3,7 +3,7 @@ version: '3.8'
 services:
   api:
     container_name: mbmbgo-api
-    image: ghcr.io/netinventmalaysia/ixora-backend:prod
+    image: ${IMAGE_REF:-ghcr.io/netinventmalaysia/ixora-backend:prod}
     restart: unless-stopped
     env_file:
       - .env.production
