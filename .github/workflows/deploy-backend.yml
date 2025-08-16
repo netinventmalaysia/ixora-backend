@@ -57,11 +57,11 @@ jobs:
     steps:
       - name: Trigger aaPanel backend webhook (retry up to 5 times)
         env:
-          WEBHOOK_BASE: ${{ secrets.AAPANEL_WEBHOOK_BACKEND }}   # <--- add this secret
+          WEBHOOK_BASE: ${{ secrets.AAPANEL_WEBHOOK_URL }}   # <--- add this secret
           DIGEST: ${{ needs.build-and-push.outputs.digest }}
         run: |
           set -e
-          [ -n "${WEBHOOK_BASE}" ] || { echo "AAPANEL_WEBHOOK_BACKEND not set"; exit 1; }
+          [ -n "${WEBHOOK_BASE}" ] || { echo "AAPANEL_WEBHOOK_URL not set"; exit 1; }
 
           URL="$WEBHOOK_BASE"
           if [ -n "${DIGEST}" ]; then
