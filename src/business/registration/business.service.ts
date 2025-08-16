@@ -49,4 +49,9 @@ export class BusinessService {
         await this.businessRepo.update(id, data);
         return this.findById(id);
     }
+
+    async updateStatus(id: number, status: string) {
+        await this.businessRepo.update(id, { status });
+        return this.findById(id);
+    }
 }

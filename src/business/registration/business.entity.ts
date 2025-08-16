@@ -38,6 +38,9 @@ export class Business {
     @Column()
     accountType: string; // 'business' or 'organisation'
 
+    @Column({ default: 'Submitted' })
+    status: string;
+
     @Column()
     invitationToken: string;
 
