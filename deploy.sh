@@ -10,7 +10,7 @@ echo "[$(date -Is)] --- backend deploy start ---"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STACK_DIR="${STACK_DIR:-$SCRIPT_DIR}"
 COMPOSE_FILE="${COMPOSE_FILE:-$STACK_DIR/docker-compose.backend.yml}"
-SERVICE="${SERVICE:-backend}"
+SERVICE="${SERVICE:-api}"
 DEFAULT_IMG="${DEFAULT_IMG:-ghcr.io/netinventmalaysia/ixora-backend:prod}"
 
 DOCKER_BIN="${DOCKER_BIN:-$(command -v docker || true)}"
@@ -51,7 +51,7 @@ export IMAGE_REF
 echo ">>> Up -d (force recreate, always pull)"
 $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --pull always --no-deps --force-recreate "$SERVICE"
 
-CID="$("$DOCKER_BIN" ps -q -f "name=mbmbgo-backend" || true)"
+CID="$("$DOCKER_BIN" ps -q -f "name=mbmbgo-api" || true)"
 if [ -n "$CID" ]; then
   RUN_IMG_ID="$("$DOCKER_BIN" inspect --format='{{.Image}}' "$CID")"
   echo "Running image ID: $RUN_IMG_ID"
