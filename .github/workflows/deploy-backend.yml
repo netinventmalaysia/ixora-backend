@@ -1,4 +1,4 @@
-name: Build & Deploy Backend (GHCR + Webhook)
+name: Build & Deploy Backend (GHCR + Digest-Pinned Webhook)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: ixora-backend
+  IMAGE_NAME: ixora-backend               # <--- change if you prefer ixora-api
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
 
@@ -16,35 +16,29 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels)
-        id: meta
+      - id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=prod
             type=sha,format=short
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
 
-      - name: Build and push
+      # Build & push backend. No NEXT_PUBLIC_* needed here typically.
+      - id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -61,16 +55,22 @@ jobs:
       group: deploy-backend
       cancel-in-progress: true
     steps:
-      - name: Trigger aaPanel webhook (retry up to 5 times)
+      - name: Trigger aaPanel backend webhook (retry up to 5 times)
         env:
-          WEBHOOK_URL: ${{ secrets.AAPANEL_WEBHOOK_URL }}
+          WEBHOOK_BASE: ${{ secrets.AAPANEL_WEBHOOK_BACKEND }}   # <--- add this secret
+          DIGEST: ${{ needs.build-and-push.outputs.digest }}
         run: |
-          if [ -z "${WEBHOOK_URL}" ]; then
-            echo "AAPANEL_WEBHOOK_URL not set"; exit 1;
+          set -e
+          [ -n "${WEBHOOK_BASE}" ] || { echo "AAPANEL_WEBHOOK_BACKEND not set"; exit 1; }
+
+          URL="$WEBHOOK_BASE"
+          if [ -n "${DIGEST}" ]; then
+            if echo "$URL" | grep -q '?'; then URL="$URL&digest=${DIGEST}"; else URL="$URL?digest=${DIGEST}"; fi
           fi
+
           for i in {1..5}; do
-            echo "GET ${WEBHOOK_URL} (attempt $i/5)"
-            if curl -fsSL --connect-timeout 20 --max-time 120 "${WEBHOOK_URL}"; then
+            echo "GET ${URL} (attempt $i/5)"
+            if curl -fsSL --connect-timeout 20 --max-time 120 "$URL"; then
               echo "Webhook OK"; exit 0
             fi
             echo "Retrying in 8s..."
