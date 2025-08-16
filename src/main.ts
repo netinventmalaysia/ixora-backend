@@ -1,6 +1,5 @@
 // crypto polyfill for bcrypt on WebCrypto
 import { webcrypto as crypto } from 'crypto';
-
 if (typeof globalThis.crypto === 'undefined') {
   (globalThis as any).crypto = crypto;
 }
@@ -12,98 +11,88 @@ import * as csurf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
-import express from 'express';
-const version = express();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 1. Enable CORS
+  // 1) CORS
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://172.17.10.66:3100', 'https://ixora.mbmb.gov.my', 'http://172.17.10.11'],
+    origin: [
+      'http://localhost:3001',
+      'http://172.17.10.66:3100',
+      'https://ixora.mbmb.gov.my',
+      'http://172.17.10.11',
+    ],
     credentials: true,
   });
 
-  // 2. Cookie parser
+  // 2) Cookies
   app.use(cookieParser());
 
-  // 3. Excluded paths
-  const csrfExcludedPaths = [
-    { path: '/auth/login', method: 'POST' },
-    { path: '/auth/logout', method: 'POST' },
-    { path: '/uploads/file', method: 'POST' },
-    { path: '/auth/guest-login', method: 'POST' },
-    { path: '/auth/forgot-password', method: 'POST' },
-    { path: '/auth/verify-reset-token', method: 'GET' },
-    { path: '/auth/reset-password', method: 'POST' },
-    { path: '/users', method: 'POST' },
-    { path: '/hooks/ixora-backend', method: 'POST' },
-    { path: '/hooks/ixora-backend', method: 'GET' },
-  ];
+  // 3) CSRF (cookie-based + header "x-csrf-token")
+  const csrfExcluded = new Set([
+    'POST /auth/login',
+    'POST /auth/logout',
+    'POST /uploads/file',
+    'POST /auth/guest-login',
+    'POST /auth/forgot-password',
+    'GET  /auth/verify-reset-token',
+    'POST /auth/reset-password',
+    'POST /users',
+    'POST /hooks/ixora-backend',
+    'GET  /hooks/ixora-backend',
+  ]);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const isExcluded = csrfExcludedPaths.some(
-      (route) => route.path === req.path && route.method === req.method,
-    );
-    if (isExcluded) {
-      console.log(`[CSRF] Skipped for ${req.method} ${req.path}`);
+    const key = `${req.method} ${req.path}`;
+    if (csrfExcluded.has(key)) {
       return next();
     }
-
-    console.log(`[CSRF] Checking for ${req.method} ${req.path}`);
-    if (!req.cookies['_csrf']) {
-      console.warn('⚠️ CSRF cookie "_csrf" not set yet');
-    }
-
-    return csurf({
+    return (csurf({
       cookie: {
-        httpOnly: false,
+        // With our flow we DON'T read this cookie in JS (we fetch token from /auth/csrf-token),
+        // so make it HttpOnly and secure in prod.
+        httpOnly: true,
         sameSite: 'lax',
-        secure: false,
+        secure: process.env.NODE_ENV === 'production',
       },
-      value: (req) => req.headers['x-csrf-token'] as string || '',
-    })(req, res, next);
+      value: (r) => (r.headers['x-csrf-token'] as string) || '',
+    }) as any)(req, res, next);
   });
 
-
-  // 5. CSRF error handler with reason
+  // 4) CSRF error handler
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    if (err.code === 'EBADCSRFTOKEN') {
-      console.error('❌ CSRF Error — invalid token');
-      console.error('→ [Expected] Cookie _csrf:', req.cookies['_csrf']);
-      console.error('→ [Provided] Header x-csrf-token:', req.headers['x-csrf-token']);
-
-      // If you're using csurf with secret stored on req
-      if ((req as any).csrfToken && typeof (req as any).csrfToken === 'function') {
-        try {
-          const currentToken = (req as any).csrfToken();
-          console.log('→ [Current Generated Token]:', currentToken);
-        } catch (e) {
-          console.log('→ Unable to generate token:', e.message);
-        }
-      } else {
-        console.log('→ req.csrfToken is not available');
-      }
-
+    if (err?.code === 'EBADCSRFTOKEN') {
       return res.status(403).json({ message: 'Invalid CSRF token' });
     }
     next(err);
   });
 
-  // 6. Global stuff
+  // 5) Globals
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // 7. Start app
-  const port = process.env.PORT || 3000;
-  await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Server is running on http://localhost:${port}`);
+  // 6) Attach /auth/csrf-token and /version to *Nest's* Express instance
+  const server = app.getHttpAdapter().getInstance();
 
-  version.get('/version', (_req, res) => {
-      res.json({
-        sha: process.env.IMAGE_REVISION || process.env.GIT_SHA || 'unknown',
-        builtAt: process.env.IMAGE_CREATED || 'unknown',
-      });
+  // Returns a one-time CSRF token (GET is "safe" and allowed by csurf)
+  server.get('/auth/csrf-token', (req: Request, res: Response) => {
+    // csurf attaches req.csrfToken()
+    const token = (req as any).csrfToken?.() ?? '';
+    res.json({ csrfToken: token });
+  });
+
+  // Simple version endpoint
+  server.get('/version', (_req: Request, res: Response) => {
+    res.json({
+      sha: process.env.IMAGE_REVISION || process.env.GIT_SHA || 'unknown',
+      builtAt: process.env.IMAGE_CREATED || 'unknown',
     });
+  });
+
+  // 7) Start
+  const port = Number(process.env.PORT) || 3000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Server listening on http://localhost:${port}`);
 }
 bootstrap();
