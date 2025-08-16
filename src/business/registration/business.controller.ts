@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Req, UseGuards, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, UseGuards, Param, Put } from '@nestjs/common';
 import { BusinessService } from './business.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -34,5 +34,12 @@ export class BusinessController {
         const businessId = parseInt(id, 10);
         const data = await this.businessService.findById(businessId);
         return data;
+    }
+
+    @Put(':id')
+    @Roles('admin', 'business', 'personal')
+    async updateBusiness(@Param('id') id: string, @Body() dto: CreateBusinessDto) {
+        const businessId = parseInt(id, 10);
+        return this.businessService.update(businessId, dto);
     }
 }
