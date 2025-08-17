@@ -11,13 +11,13 @@ import { addMinutes } from 'date-fns';
 @Injectable()
 export class TeamService {
     constructor(
-    @InjectRepository(TeamMember)
-    private teamRepo: Repository<TeamMember>,
-    private mailService: MailService,
-    @InjectRepository(Business)
-    private businessRepo: Repository<Business>,
-    @InjectRepository(User)
-    private userRepo: Repository<User>,
+        @InjectRepository(TeamMember)
+        private teamRepo: Repository<TeamMember>,
+        private mailService: MailService,
+        @InjectRepository(Business)
+        private businessRepo: Repository<Business>,
+        @InjectRepository(User)
+        private userRepo: Repository<User>,
     ) { }
 
     async getTeamByBusinessId(businessId: number) {
@@ -48,7 +48,7 @@ export class TeamService {
         });
 
         await this.teamRepo.save(member);
-    const invitationUrl = `${process.env.FRONTEND_URL}/business-invite?token=${token}`;
+        const invitationUrl = `${process.env.FRONTEND_URL}/business-invite?token=${token}`;
         await this.mailService.sendInviteEmail(email, {
             name: business.companyName,
             invitationUrl,
