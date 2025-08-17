@@ -27,6 +27,7 @@ export class BusinessService {
     async findAllMappedByUser(userId: number) {
         const businesses = await this.businessRepo.find({
             where: { /* createdBy: userId */ },  // Add if you have relation
+            relations: ['user'],
             order: { createdAt: 'DESC' },
         });
 

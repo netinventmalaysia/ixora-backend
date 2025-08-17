@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from 'src/users/user.entity';
 
 @Entity('businesses')
 export class Business {
@@ -43,6 +44,10 @@ export class Business {
 
     @Column()
     userId: number;
+
+    @ManyToOne(() => User, { nullable: true })
+    @JoinColumn({ name: 'userId' })
+    user: User;
 
     @Column({ default: '' })
     invitationToken: string;
