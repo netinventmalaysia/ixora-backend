@@ -105,7 +105,7 @@ export class TeamService {
 
         // tie invitee to business by setting userId and activating status
         member.userId = finalUserId;
-        member.status = 'active';
+        member.status = TeamMemberStatus.ACTIVE;
         member.token = '';
         member.tokenExpires = undefined as any;
         await this.teamRepo.save(member);
