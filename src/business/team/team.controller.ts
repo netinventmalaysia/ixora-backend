@@ -64,9 +64,9 @@ export class TeamController {
             return {
                 statusCode: 401,
                 error: 'unauthenticated',
-                loginUrl: `/auth/login?return=${encodeURIComponent(`/business-invite?token=${token}`)}`,
+                loginUrl: `/?return=${encodeURIComponent(`/business-invite?token=${token}`)}`,
             };
         }
         return this.teamService.acceptInvite(token, req.user.userId);
     }
-    }
+}
