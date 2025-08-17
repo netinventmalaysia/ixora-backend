@@ -50,4 +50,23 @@ export class TeamController {
     async removeMember(@Param('memberId') memberId: number) {
         return this.teamService.removeMember(+memberId);
     }
-}
+
+    @Get('/invite/validate')
+    async validateInvite(@Body() body: any, @Param() params: any, @Req() req: any) {
+        const token = req.query.token as string;
+        return this.teamService.validateInvite(token);
+    }
+
+    @Post('/invite/accept')
+    async acceptInvite(@Body('token') token: string, @Req() req: any) {
+        // If user is not authenticated, return 401 with loginUrl
+        if (!req.user) {
+            return {
+                statusCode: 401,
+                error: 'unauthenticated',
+                loginUrl: `/auth/login?return=${encodeURIComponent(`/business-invite?token=${token}`)}`,
+            };
+        }
+        return this.teamService.acceptInvite(token, req.user.userId);
+    }
+    }
