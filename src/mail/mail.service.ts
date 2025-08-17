@@ -49,7 +49,9 @@ export class MailService {
         });
     }
     async sendVerificationEmail(email: string, verificationToken: string) {
-        const verificationUrl = `https://mbmb.com/verify-email?token=${verificationToken}`;
+        const frontend = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+        const base = frontend || '';
+        const verificationUrl = `${base}/verify-email?token=${verificationToken}`;
 
         return this.mailerService.sendMail({
             to: email,
