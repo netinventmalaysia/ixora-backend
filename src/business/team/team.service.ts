@@ -4,17 +4,20 @@ import { TeamMember } from './team-member.entity';
 import { Repository } from 'typeorm';
 import { MailService } from 'src/mail/mail.service';
 import { Business } from '../registration/business.entity';
+import { User } from 'src/users/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { addMinutes } from 'date-fns';
 
 @Injectable()
 export class TeamService {
     constructor(
-        @InjectRepository(TeamMember)
-        private teamRepo: Repository<TeamMember>,
-        private mailService: MailService,
-        @InjectRepository(Business)
-        private businessRepo: Repository<Business>
+    @InjectRepository(TeamMember)
+    private teamRepo: Repository<TeamMember>,
+    private mailService: MailService,
+    @InjectRepository(Business)
+    private businessRepo: Repository<Business>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
     ) { }
 
     async getTeamByBusinessId(businessId: number) {
@@ -85,9 +88,15 @@ export class TeamService {
         if (member.userId) {
             return { success: true, alreadyAccepted: true, membership: { businessId: member.businessId, userId: member.userId, role: member.role, joinedAt: member.createdAt } };
         }
+        // If userId not provided, try to find user by invited email
+        let finalUserId = userId;
+        if (!finalUserId && member.email) {
+            const user = await this.userRepo.findOne({ where: { email: member.email } });
+            if (user) finalUserId = user.id;
+        }
 
         // tie invitee to business by setting userId and activating status
-        member.userId = userId;
+        member.userId = finalUserId;
         member.status = 'active';
         member.token = '';
         member.tokenExpires = undefined as any;
