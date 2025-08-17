@@ -36,12 +36,15 @@ export class TeamService {
         const token = uuidv4();
         const expiry = addMinutes(new Date(), 15); // expires in 15 mins
         if (!business) throw new Error('Business not found');
+        // find user by email
+        const user = await this.userRepo.findOne({ where: { email } });
 
         const member = this.teamRepo.create({
             businessId,
             email,
             role: 'business',
             invitedBy,
+            userId: user?.id,
             token,
             tokenExpires: expiry,
             status: 'pending',
