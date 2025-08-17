@@ -8,6 +8,13 @@ import {
 } from 'typeorm';
 import { Business } from '../registration/business.entity';
 import { User } from 'src/users/user.entity';
+
+export enum TeamMemberStatus {
+    PENDING = 'pending',
+    ACTIVE = 'active',
+    DECLINED = 'declined',
+}
+
 @Entity('team_members')
 export class TeamMember {
     @PrimaryGeneratedColumn()
@@ -36,8 +43,8 @@ export class TeamMember {
     @Column({ nullable: true })
     invitedBy: number;
 
-    @Column({ nullable: true })
-    status: string;
+    @Column({ type: 'enum', enum: TeamMemberStatus, default: TeamMemberStatus.PENDING })
+    status: TeamMemberStatus;
 
     @Column({ nullable: true })
     token: string;

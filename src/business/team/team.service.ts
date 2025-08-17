@@ -7,6 +7,7 @@ import { Business } from '../registration/business.entity';
 import { User } from 'src/users/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { addMinutes } from 'date-fns';
+import { TeamMemberStatus } from './team-member.entity';
 
 @Injectable()
 export class TeamService {
@@ -39,6 +40,10 @@ export class TeamService {
         // find user by email
         const user = await this.userRepo.findOne({ where: { email } });
 
+        if (user && user.id === invitedBy) {
+            throw new Error('You cannot invite yourself');
+        }
+
         const member = this.teamRepo.create({
             businessId,
             email,
@@ -47,7 +52,7 @@ export class TeamService {
             userId: user?.id,
             token,
             tokenExpires: expiry,
-            status: 'pending',
+            status: TeamMemberStatus.PENDING,
         });
 
         await this.teamRepo.save(member);
