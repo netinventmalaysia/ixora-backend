@@ -9,6 +9,8 @@ import {
     Req,
     UseGuards,
     NotFoundException,
+    Logger,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { TeamService } from './team.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -18,6 +20,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 @Controller('business')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class TeamController {
+    private readonly logger = new Logger(TeamController.name);
     constructor(private readonly teamService: TeamService) { }
 
     @Get(':businessId/team')
@@ -60,14 +63,19 @@ export class TeamController {
 
     @Post('/invite/accept')
     async acceptInvite(@Body('token') token: string, @Req() req: any) {
-        // If user is not authenticated, return 401 with loginUrl
-        if (!req.user) {
-            return {
-                statusCode: 401,
-                error: 'unauthenticated',
-                loginUrl: `/?return=${encodeURIComponent(`/business-invite?token=${token}`)}`,
-            };
+        // log authenticated user for debugging
+        this.logger.debug(`acceptInvite req.user: ${JSON.stringify(req.user ?? {})}`);
+        // extract user id from common JWT claim names
+        const userId = req.user?.userId ?? req.user?.sub ?? req.user?.id ?? null;
+        if (!userId) {
+            // Build full-domain login URL (use FRONTEND_URL if set)
+            const frontend = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+            const loginUrl = frontend
+                ? `${frontend}/?redirect=${encodeURIComponent(`/business-invite?token=${token}`)}`
+                : `/?redirect=${encodeURIComponent(`/business-invite?token=${token}`)}`;
+            throw new UnauthorizedException({ error: 'unauthenticated', loginUrl });
         }
-        return this.teamService.acceptInvite(token, req.user.userId);
+
+        return this.teamService.acceptInvite(token, userId);
     }
 }
