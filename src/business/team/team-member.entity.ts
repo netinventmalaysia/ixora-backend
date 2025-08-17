@@ -39,6 +39,12 @@ export class TeamMember {
     @Column({ nullable: true })
     status: string;
 
+    @Column({ nullable: true })
+    token: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    tokenExpires: Date;
+
     @CreateDateColumn()
     createdAt: Date;
 }

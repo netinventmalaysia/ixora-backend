@@ -33,7 +33,8 @@ export class TeamController {
         @Body('email') email: string,
         @Req() req: any
     ) {
-        return this.teamService.inviteMember(+businessId, email, req.user.userId);
+        const inviterId = req.user?.userId ?? req.user?.sub ?? req.user?.id ?? null;
+        return this.teamService.inviteMember(+businessId, email, inviterId);
     }
 
     @Patch('team/:memberId/role')
