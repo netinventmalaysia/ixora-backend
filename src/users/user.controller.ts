@@ -6,6 +6,7 @@ import { User } from './user.entity';
 import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Query } from '@nestjs/common';
 
 @ApiTags('Users') // Group name in Swagger UI
 @Controller('users')
@@ -40,6 +41,14 @@ export class UserController {
     @ApiOkResponse({ type: UserResponseDto })
     async getUser(@Param('username') username: string): Promise<UserResponseDto> {
         const user = await this.userService.findByUsername(username);
+        return plainToInstance(UserResponseDto, user);
+    }
+
+    @Get()
+    async getUserByEmail(@Query('email') email: string) {
+        if (!email) return null;
+        const user = await this.userService.findByEmail(email);
+        if (!user) return null;
         return plainToInstance(UserResponseDto, user);
     }
 
