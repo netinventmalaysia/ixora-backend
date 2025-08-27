@@ -11,9 +11,10 @@ import { SftpModule } from './sftp/sftp.module';
 import { TeamModule } from './business/team/team.module';
 import { HooksModule } from './hooks/hooks.module';
 import { MbmbModule } from './mbmb/mbmb.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
-  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule, MbmbModule,
+  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule, MbmbModule, BillingModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
