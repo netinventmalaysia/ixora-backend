@@ -41,6 +41,22 @@ export class BillingService {
         currency: 'MYR',
         customer_ic: '901231-10-1234',
       },
+      {
+        id: 3,
+        name: 'MySKB Test (Company)',
+        business_id: 103,
+        lastInvoice: {
+          id: 9003,
+          date: format(now, 'MMMM d, yyyy'),
+          dateTime: now.toISOString(),
+          amount: 'RM 150.00',
+          status: 'Overdue',
+        },
+        dueDate: undefined,
+        outstandingAmount: 150,
+        currency: 'MYR',
+        customer_ic: '901231-10-1234',
+      },
     ];
 
     if (typeof businessId === 'number') {
