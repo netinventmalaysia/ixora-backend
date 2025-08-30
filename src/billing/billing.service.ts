@@ -39,7 +39,7 @@ export class BillingService {
         dueDate: undefined,
         outstandingAmount: 150,
         currency: 'MYR',
-        customer_ic: '901231-10-1234',
+        customer_ic: '901231-10-1232',
       },
     ];
 
