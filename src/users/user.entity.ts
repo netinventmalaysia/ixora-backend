@@ -96,9 +96,6 @@ export class User {
     @Column({ nullable: true })
     preferences: string;
 
-    @Column({ nullable: true })
-    encrypted_address: string;
-
     @Column({ default: false })
     isTwoFactorEnabled: boolean;
 
