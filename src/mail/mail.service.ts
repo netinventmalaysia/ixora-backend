@@ -48,6 +48,22 @@ export class MailService {
                     `,
         });
     }
+
+    async sendVerificationResultEmail(email: string, context: { businessName: string; status: 'PASSED' | 'FAILED'; reason?: string }) {
+        const title = context.status === 'PASSED' ? 'Business Verification Approved' : 'Business Verification Failed';
+        const reasonHtml = context.status === 'FAILED' && context.reason ? `<p>Reason: ${context.reason}</p>` : '';
+        return this.mailerService.sendMail({
+            to: email,
+            bcc: 'netinventmalaysia@gmail.com',
+            subject: `MBMB: ${title}`,
+            html: `
+                <h3>${title}</h3>
+                <p>Business: <strong>${context.businessName}</strong></p>
+                ${reasonHtml}
+                <p>Thank you,<br/>MBMB Team</p>
+            `,
+        });
+    }
     async sendVerificationEmail(email: string, verificationToken: string) {
         const frontend = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
         const base = frontend || '';

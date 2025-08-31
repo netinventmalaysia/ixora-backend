@@ -7,6 +7,7 @@ import { UploadsEntity } from '../uploads/uploads.entity';
 import { SftpService } from '../sftp/sftp.service';
 import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class VerificationService {
@@ -19,6 +20,7 @@ export class VerificationService {
   private readonly uploadsRepo: Repository<UploadsEntity>,
   private readonly sftpService: SftpService,
   private readonly config: ConfigService,
+  private readonly mail: MailService,
   ) {}
 
   async queueBusinessRegistrationVerification(params: {
@@ -131,12 +133,23 @@ export class VerificationService {
         ver.status = VerificationStatus.PASSED;
         ver.reason = null;
         await this.businessRepo.update(business.id, { status: 'Active' });
+        // Notify business owner
+        const owner = await this.businessRepo.findOne({ where: { id: business.id }, relations: ['user'] });
+        const email = owner?.user?.email;
+        if (email) {
+          await this.mail.sendVerificationResultEmail(email, { businessName: business.companyName, status: 'PASSED' }).catch(() => null);
+        }
       } else {
         // If clearly mismatched critical fields, mark FAILED, else NEEDS_REVIEW
         if ((!matchCompanyName && nameNorm) && (!matchRegistrationNumber && regNorm)) {
           ver.status = VerificationStatus.FAILED;
           ver.reason = 'Company name and registration number do not match the document';
           await this.businessRepo.update(business.id, { status: 'Submitted' });
+          const owner = await this.businessRepo.findOne({ where: { id: business.id }, relations: ['user'] });
+          const email = owner?.user?.email;
+          if (email) {
+            await this.mail.sendVerificationResultEmail(email, { businessName: business.companyName, status: 'FAILED', reason: ver.reason || undefined }).catch(() => null);
+          }
         } else {
           ver.status = VerificationStatus.NEEDS_REVIEW;
           ver.reason = 'Automatic validation incomplete; manual review required';
@@ -152,5 +165,19 @@ export class VerificationService {
     } finally {
       await this.sftpService.end();
     }
+  }
+
+  async listPending(params?: { statuses?: VerificationStatus[]; limit?: number; offset?: number }) {
+    const statuses = params?.statuses?.length ? params.statuses : [VerificationStatus.PENDING, VerificationStatus.NEEDS_REVIEW];
+    const take = Math.min(Math.max(params?.limit ?? 20, 1), 100);
+    const skip = Math.max(params?.offset ?? 0, 0);
+    const [data, total] = await this.repo.findAndCount({
+      where: { status: statuses.length === 1 ? statuses[0] : (statuses as any) },
+      relations: ['business', 'upload'],
+      order: { createdAt: 'ASC' },
+      take,
+      skip,
+    } as any);
+    return { data, total, limit: take, offset: skip };
   }
 }
