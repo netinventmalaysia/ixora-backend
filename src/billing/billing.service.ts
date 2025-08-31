@@ -11,14 +11,16 @@ import { BillingItem } from './billing.item.entity';
 import { CreateBillingDto } from './dto/create-billing.dto';
 // Razer callback removed; using MBMB callback instead
 import { MbmbCallbackDto } from './dto/mbmb-callback.dto';
+import { Payment } from './payment.entity';
 import { PaymentSubmitDto } from './dto/payment-submit.dto';
 
 @Injectable()
 export class BillingService {
   constructor(
     @InjectRepository(Business) private readonly businessRepo: Repository<Business>,
-    @InjectRepository(Billing) private readonly billingRepo: Repository<Billing>,
-    @InjectRepository(BillingItem) private readonly billingItemRepo: Repository<BillingItem>,
+  @InjectRepository(Billing) private readonly billingRepo: Repository<Billing>,
+  @InjectRepository(BillingItem) private readonly billingItemRepo: Repository<BillingItem>,
+  @InjectRepository(Payment) private readonly paymentRepo: Repository<Payment>,
     private readonly mbmb: MbmbService,
   ) { }
 
@@ -150,6 +152,27 @@ export class BillingService {
 
   // Prefer MBMB callback: update by orderid returned from payment/submit
   async handleMbmbCallback(dto: MbmbCallbackDto): Promise<Billing> {
+    // Persist raw callback for audit/troubleshooting
+    await this.paymentRepo.save(this.paymentRepo.create({
+      orderid: dto.orderid,
+      tranID: dto.tranID,
+      domain: dto.domain,
+      status: dto.status,
+      amount: dto.amount,
+      currency: dto.currency,
+      paydate: dto.paydate,
+      appcode: dto.appcode,
+      error_code: dto.error_code,
+      error_desc: dto.error_desc,
+      channel: dto.channel,
+      extraP: dto.extraP,
+      treq: dto.treq,
+      user_id: dto.user_id,
+      vendor_id: dto.vendor_id,
+      vendor_method: dto.vendor_method,
+      callbackPaymentUrl: dto.callbackPaymentUrl,
+      skey: dto.skey,
+    }));
     const reference = dto.orderid;
     const billing = await this.billingRepo.findOne({ where: { reference }, relations: ['items'] });
     if (!billing) throw new NotFoundException('Billing not found');
@@ -161,7 +184,7 @@ export class BillingService {
     billing.paidAmount = dto.amount ? Number(dto.amount) : billing.paidAmount ?? null;
     billing.pgTransactionId = dto.tranID || billing.pgTransactionId || null;
     billing.pgRefNo = dto.refNo || billing.pgRefNo || null;
-    billing.paidAt = dto.paidAt ? new Date(dto.paidAt) : billing.paidAt ?? new Date();
+  billing.paidAt = dto.paydate ? new Date(dto.paydate) : billing.paidAt ?? new Date();
     billing.status = paid ? BillingStatus.PAID : BillingStatus.UNPAID;
 
     billing.items?.forEach((it) => { it.status = billing.status; });

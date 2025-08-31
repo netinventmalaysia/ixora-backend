@@ -51,8 +51,8 @@ export class BillingController {
   @Post('callback/mbmb')
   async mbmbCallback(@Body() body: MbmbCallbackDto) {
     try {
-      const updated = await this.billing.handleMbmbCallback(body);
-      return { ok: true, id: updated.id, status: updated.status };
+  await this.billing.handleMbmbCallback(body);
+  return { data: 'ok' };
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to process MBMB callback' }, HttpStatus.BAD_REQUEST);

@@ -5,10 +5,11 @@ import { BillingController } from './billing.controller';
 import { Business } from '../business/registration/business.entity';
 import { Billing } from './billing.entity';
 import { BillingItem } from './billing.item.entity';
+import { Payment } from './payment.entity';
 import { MbmbModule } from '../mbmb/mbmb.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Business, Billing, BillingItem]), MbmbModule],
+  imports: [TypeOrmModule.forFeature([Business, Billing, BillingItem, Payment]), MbmbModule],
   controllers: [BillingController],
   providers: [BillingService],
 })
