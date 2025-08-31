@@ -11,6 +11,17 @@ A fully featured **NestJS boilerplate** with Docker support, JWT authentication,
 
   
 
+## OCR configuration
+
+- OCR_LANGS: Languages for tesseract OCR. Default: `eng+msa` (English + Malay).
+- OCR_LANG_PATH: Optional path to local traineddata files. If set, tesseract.js will load languages from this folder.
+
+Examples:
+- Keep defaults (English + Malay): no change required.
+- Explicitly set in `.env`:
+	- `OCR_LANGS=eng+msa`
+	- `# OCR_LANG_PATH=/opt/tessdata` (if you host traineddata locally)
+
 ## 🚀 Tech Stack
 
   

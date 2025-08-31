@@ -67,11 +67,13 @@ export class UploadsService {
 
         // Queue verification for business registration documents
         if (saved.businessId && saved.documentType === 'business_registration') {
-            await this.verificationService.queueBusinessRegistrationVerification({
+            const ver = await this.verificationService.queueBusinessRegistrationVerification({
                 businessId: saved.businessId,
                 uploadId: saved.id,
                 documentType: saved.documentType,
             });
+            // Fire-and-forget processing (placeholder). In production, use a queue.
+            this.verificationService.processVerification(ver.id).catch(() => null);
         }
 
         return saved;
