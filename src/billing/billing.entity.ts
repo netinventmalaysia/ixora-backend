@@ -48,13 +48,13 @@ export class Billing {
     @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
     paidAmount?: number | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', length: 255, nullable: true })
     pgTransactionId?: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', length: 255, nullable: true })
     pgRefNo?: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', length: 64, nullable: true })
     pgStatus?: string | null;
 
     @Column({ type: 'datetime', nullable: true })
