@@ -49,13 +49,13 @@ export class Billing {
     paidAmount?: number | null;
 
     @Column({ type: 'varchar', length: 255, nullable: true })
-    pgTransactionId?: string | null;
+    paymentGatewayTransactionId?: string | null;
 
     @Column({ type: 'varchar', length: 255, nullable: true })
-    pgRefNo?: string | null;
+    paymentGatewayRefNo?: string | null;
 
     @Column({ type: 'varchar', length: 64, nullable: true })
-    pgStatus?: string | null;
+    paymentGatewayStatus?: string | null;
 
     @Column({ type: 'datetime', nullable: true })
     mbmbSubmittedAt?: Date | null;

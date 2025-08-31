@@ -180,10 +180,10 @@ export class BillingService {
     // Normalize status: treat 'Paid', 'N', '00', '1' as paid
     const s = (dto.status || '').toLowerCase();
     const paid = s === 'paid' || s === 'n' || s === '00' || s === '1';
-    billing.pgStatus = dto.status || null;
+  billing.paymentGatewayStatus = dto.status || null;
     billing.paidAmount = dto.amount ? Number(dto.amount) : billing.paidAmount ?? null;
-    billing.pgTransactionId = dto.tranID || billing.pgTransactionId || null;
-    billing.pgRefNo = dto.refNo || billing.pgRefNo || null;
+  billing.paymentGatewayTransactionId = dto.tranID || billing.paymentGatewayTransactionId || null;
+  billing.paymentGatewayRefNo = dto.refNo || billing.paymentGatewayRefNo || null;
   billing.paidAt = dto.paydate ? new Date(dto.paydate) : billing.paidAt ?? new Date();
     billing.status = paid ? BillingStatus.PAID : BillingStatus.UNPAID;
 
