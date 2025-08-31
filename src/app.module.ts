@@ -12,6 +12,7 @@ import { TeamModule } from './business/team/team.module';
 import { HooksModule } from './hooks/hooks.module';
 import { MbmbModule } from './mbmb/mbmb.module';
 import { BillingModule } from './billing/billing.module';
+import { VerificationModule } from './verification/verification.module'; // Importing VerificationModule
 
 @Module({
   imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule, MbmbModule, BillingModule,

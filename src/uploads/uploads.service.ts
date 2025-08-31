@@ -5,6 +5,7 @@ import * as path from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UploadsEntity } from './uploads.entity';
+import { VerificationService } from '../verification/verification.service';
 
 @Injectable()
 export class UploadsService {
@@ -13,6 +14,7 @@ export class UploadsService {
     constructor(
         private configService: ConfigService,
         @InjectRepository(UploadsEntity) private readonly uploadsRepo: Repository<UploadsEntity>,
+        private readonly verificationService: VerificationService,
     ) {
         this.sftp = new SftpClient();
     }
@@ -61,7 +63,17 @@ export class UploadsService {
             documentType: options?.documentType ?? null,
             description: options?.description ?? null,
         });
+        const saved = await this.uploadsRepo.save(record);
 
-        return await this.uploadsRepo.save(record);
+        // Queue verification for business registration documents
+        if (saved.businessId && saved.documentType === 'business_registration') {
+            await this.verificationService.queueBusinessRegistrationVerification({
+                businessId: saved.businessId,
+                uploadId: saved.id,
+                documentType: saved.documentType,
+            });
+        }
+
+        return saved;
     }
 }
