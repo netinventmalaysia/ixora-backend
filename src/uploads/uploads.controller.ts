@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
+import { UploadsEntity } from './uploads.entity';
 import { multerOptions } from './multer.options';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
@@ -32,10 +33,14 @@ export class UploadsController {
   @UseInterceptors(FileInterceptor('file', multerOptions))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body('folder') folder: string
-  ) {
-    const remotePath = await this.uploadsService.uploadFile(file, folder);
-    return { message: 'File uploaded', path: remotePath };
+    @Body('folder') folder: string,
+    @Body('businessId') businessId?: number,
+    @Body('documentType') documentType?: string,
+    @Body('description') description?: string,
+    @Body('userId') userId?: number,
+  ): Promise<UploadsEntity> {
+    const saved = await this.uploadsService.uploadFile(file, folder, { businessId, userId, documentType, description });
+    return saved;
   }
 
   @Get('file/*path')

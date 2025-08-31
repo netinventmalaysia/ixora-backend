@@ -5,7 +5,7 @@ import { UploadsEntity } from './uploads.entity';
 import { UploadsService } from './uploads.service';
 import { ConfigModule } from '@nestjs/config';
 @Module({
-  imports: [TypeOrmModule.forFeature([UploadsEntity])],
+  imports: [ConfigModule, TypeOrmModule.forFeature([UploadsEntity])],
   providers: [UploadsService],
   controllers: [UploadsController]
 })

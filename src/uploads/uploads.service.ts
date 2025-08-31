@@ -2,16 +2,22 @@ import { Injectable } from '@nestjs/common';
 import * as SftpClient from 'ssh2-sftp-client';
 import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UploadsEntity } from './uploads.entity';
 
 @Injectable()
 export class UploadsService {
     private sftp: SftpClient;
 
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        @InjectRepository(UploadsEntity) private readonly uploadsRepo: Repository<UploadsEntity>,
+    ) {
         this.sftp = new SftpClient();
     }
 
-    async uploadFile(file: Express.Multer.File, folder: string): Promise<string> {
+    async uploadFile(file: Express.Multer.File, folder: string, options?: { businessId?: number; userId?: number; documentType?: string; description?: string; }): Promise<UploadsEntity> {
         const host = this.configService.get('SFTP_HOST');
         const port = +this.configService.get('SFTP_PORT');
         const username = this.configService.get('SFTP_USER');
@@ -27,7 +33,7 @@ export class UploadsService {
         const ext = path.extname(file.originalname);
         const nameWithoutExt = path.basename(file.originalname, ext);
         const timestamp = Date.now();
-        const newFilename = `${timestamp}${ext}`
+    const newFilename = `${timestamp}${ext}`
         const remoteFilePath = path.posix.join(remoteFolderPath, newFilename);
 
         console.log('Creating folder:', remoteFolderPath);
@@ -42,6 +48,20 @@ export class UploadsService {
             await this.sftp.end();
         }
 
-        return `${safeFolder}/${newFilename}`;
+        const record = this.uploadsRepo.create({
+            storage: 'sftp',
+            originalName: file.originalname,
+            filename: newFilename,
+            path: `${safeFolder}/${newFilename}`,
+            folder: safeFolder,
+            mimeType: file.mimetype,
+            size: file.size,
+            businessId: options?.businessId ?? null,
+            userId: options?.userId ?? null,
+            documentType: options?.documentType ?? null,
+            description: options?.description ?? null,
+        });
+
+        return await this.uploadsRepo.save(record);
     }
 }
