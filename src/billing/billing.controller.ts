@@ -1,6 +1,7 @@
-import { Controller, Get, HttpException, HttpStatus, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Query } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { InvoiceDto } from './dto/invoice.dto';
+import { InsertOnlineBillDto } from './dto/insert-online-bill.dto';
 
 @Controller(['billings', 'api/billings'])
 export class BillingController {
@@ -17,6 +18,17 @@ export class BillingController {
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to fetch billings' }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // POST /billings/insert -> forwards to MBMB Insert Online Bill
+  @Post('insert')
+  async insertOnlineBill(@Body() body: InsertOnlineBillDto) {
+    try {
+      return await this.billing.insertOnlineBill(body);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException({ error: err?.message || 'Failed to insert online bill' }, HttpStatus.BAD_GATEWAY);
     }
   }
 }
