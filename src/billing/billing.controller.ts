@@ -2,10 +2,14 @@ import { Body, Controller, Get, HttpException, HttpStatus, Post, Query } from '@
 import { BillingService } from './billing.service';
 import { InvoiceDto } from './dto/invoice.dto';
 import { InsertOnlineBillDto } from './dto/insert-online-bill.dto';
+import { CreateBillingDto } from './dto/create-billing.dto';
+// Razer callback removed in favor of MBMB callback
+import { MbmbCallbackDto } from './dto/mbmb-callback.dto';
+import { PaymentSubmitDto } from './dto/payment-submit.dto';
 
 @Controller(['billings', 'api/billings'])
 export class BillingController {
-  constructor(private readonly billing: BillingService) {}
+  constructor(private readonly billing: BillingService) { }
 
   @Get()
   async findAll(@Query('business_id') businessId?: string): Promise<InvoiceDto[]> {
@@ -29,6 +33,40 @@ export class BillingController {
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to insert online bill' }, HttpStatus.BAD_GATEWAY);
+    }
+  }
+
+  // POST /billings -> create IXORA billing (CREATED) with items
+  @Post()
+  async create(@Body() body: CreateBillingDto) {
+    try {
+      return await this.billing.create(body);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException({ error: err?.message || 'Failed to create billing' }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  // MBMB payment callback (recommended)
+  @Post('callback/mbmb')
+  async mbmbCallback(@Body() body: MbmbCallbackDto) {
+    try {
+      const updated = await this.billing.handleMbmbCallback(body);
+      return { ok: true, id: updated.id, status: updated.status };
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException({ error: err?.message || 'Failed to process MBMB callback' }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  // Initiate payment via MBMB; returns URL for frontend redirection
+  @Post('payment/submit')
+  async submitPayment(@Body() body: PaymentSubmitDto) {
+    try {
+      return await this.billing.submitPayment(body);
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException({ error: err?.message || 'Failed to create payment' }, HttpStatus.BAD_GATEWAY);
     }
   }
 }

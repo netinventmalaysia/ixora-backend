@@ -6,13 +6,21 @@ import { Business } from '../business/registration/business.entity';
 import { MbmbService } from '../mbmb/mbmb.service';
 import { format } from 'date-fns';
 import { InsertOnlineBillDto } from './dto/insert-online-bill.dto';
+import { Billing, BillingStatus } from './billing.entity';
+import { BillingItem } from './billing.item.entity';
+import { CreateBillingDto } from './dto/create-billing.dto';
+// Razer callback removed; using MBMB callback instead
+import { MbmbCallbackDto } from './dto/mbmb-callback.dto';
+import { PaymentSubmitDto } from './dto/payment-submit.dto';
 
 @Injectable()
 export class BillingService {
   constructor(
     @InjectRepository(Business) private readonly businessRepo: Repository<Business>,
+    @InjectRepository(Billing) private readonly billingRepo: Repository<Billing>,
+    @InjectRepository(BillingItem) private readonly billingItemRepo: Repository<BillingItem>,
     private readonly mbmb: MbmbService,
-  ) {}
+  ) { }
 
   // Contract: returns array of InvoiceDto (empty array if none)
   async listInvoices(businessId?: number): Promise<InvoiceDto[]> {
@@ -34,7 +42,7 @@ export class BillingService {
     // Call MBMB: Example endpoint assumptions based on MBMB docs
     // We'll try a generic proxy using the public API path. If the exact endpoint differs,
     // adjust 'resourcePath' accordingly (kept configurable).
-  const resourcePath = process.env.MBMB_BILLINGS_RESOURCE || `bill/online/invoices`;
+    const resourcePath = process.env.MBMB_BILLINGS_RESOURCE || `bill/online/invoices`;
 
     // Build params: assume regNo is the filter key; add pagination defaults.
     const params: Record<string, any> = {
@@ -112,5 +120,70 @@ export class BillingService {
 
     const resourcePath = process.env.MBMB_INSERT_RESOURCE || 'bill/online/insert';
     return this.mbmb.postPublicResource(resourcePath, payload);
+  }
+
+  // Create a billing with items in CREATED status
+  async create(dto: CreateBillingDto): Promise<Billing> {
+    const total = dto.items.reduce((sum, it) => sum + Number(it.amaun || 0), 0);
+    const billing = this.billingRepo.create({
+      reference: dto.reference,
+      businessId: dto.businessId,
+      userId: dto.userId,
+      status: BillingStatus.CREATED,
+      totalAmount: total,
+      currency: 'MYR',
+      items: dto.items.map((it) =>
+        this.billingItemRepo.create({
+          order_no: it.order_no,
+          jenis: it.jenis,
+          no_akaun: it.no_akaun,
+          amaun: it.amaun,
+          status: BillingStatus.CREATED,
+        }),
+      ),
+    });
+    return this.billingRepo.save(billing);
+  }
+
+  // Handle Razer callback: update billing status and store PG details
+  // (Razer-specific handler removed)
+
+  // Prefer MBMB callback: update by orderid returned from payment/submit
+  async handleMbmbCallback(dto: MbmbCallbackDto): Promise<Billing> {
+    const reference = dto.orderid;
+    const billing = await this.billingRepo.findOne({ where: { reference }, relations: ['items'] });
+    if (!billing) throw new NotFoundException('Billing not found');
+
+    // Normalize status: treat 'Paid', 'N', '00', '1' as paid
+    const s = (dto.status || '').toLowerCase();
+    const paid = s === 'paid' || s === 'n' || s === '00' || s === '1';
+    billing.pgStatus = dto.status || null;
+    billing.paidAmount = dto.amount ? Number(dto.amount) : billing.paidAmount ?? null;
+    billing.pgTransactionId = dto.tranID || billing.pgTransactionId || null;
+    billing.pgRefNo = dto.refNo || billing.pgRefNo || null;
+    billing.paidAt = dto.paidAt ? new Date(dto.paidAt) : billing.paidAt ?? new Date();
+    billing.status = paid ? BillingStatus.PAID : BillingStatus.UNPAID;
+
+    billing.items?.forEach((it) => { it.status = billing.status; });
+    await this.billingItemRepo.save(billing.items || []);
+    return this.billingRepo.save(billing);
+  }
+
+  // Submit payment via MBMB and get redirect URL for Razer
+  async submitPayment(dto: PaymentSubmitDto): Promise<{ status: boolean; url?: string }> {
+    const resourcePath = process.env.MBMB_PAYMENT_SUBMIT_RESOURCE || 'payment/submit';
+    // MBMB expects snake/camel casing as per their API. We'll map to their query/body keys.
+    const payload = {
+      orderid: dto.orderId, // IXORA reference
+      amount: dto.amount,
+      bill_name: dto.billName,
+      bill_email: dto.billEmail,
+      bill_mobile: dto.billMobile,
+      bill_desc: dto.billDesc,
+      country: dto.country || 'MY',
+    };
+    const res = await this.mbmb.postPublicResource(resourcePath, payload);
+    // Expected: { status: true, url: 'https://...' }
+    return { status: !!res?.status, url: res?.url };
   }
 }
