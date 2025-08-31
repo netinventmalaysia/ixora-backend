@@ -4,17 +4,36 @@ import { Business } from './business.entity';
 import { Repository } from 'typeorm';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { mapBusinessToListItem } from './business.mapper';
+import { UploadsEntity } from '../../uploads/uploads.entity';
+import { VerificationService } from '../../verification/verification.service';
 
 @Injectable()
 export class BusinessService {
     constructor(
         @InjectRepository(Business)
         private businessRepo: Repository<Business>,
+        @InjectRepository(UploadsEntity)
+        private uploadsRepo: Repository<UploadsEntity>,
+        private readonly verificationService: VerificationService,
     ) { }
 
     async create(data: CreateBusinessDto): Promise<Business> {
-        const business = this.businessRepo.create(data);
-        return this.businessRepo.save(business);
+        const business = await this.businessRepo.save(this.businessRepo.create(data));
+
+        // Trigger verification if a certificate path is provided and upload record exists
+        if (business.certificateFilePath) {
+            const upload = await this.uploadsRepo.findOne({ where: { path: business.certificateFilePath } });
+            if (upload) {
+                const ver = await this.verificationService.queueBusinessRegistrationVerification({
+                    businessId: business.id,
+                    uploadId: upload.id,
+                    documentType: 'business_registration',
+                });
+                this.verificationService.processVerification(ver.id).catch(() => null);
+            }
+        }
+
+        return business;
     }
 
     async findByUser(userId: number) {
