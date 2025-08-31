@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Billing, BillingStatus } from './billing.entity';
+import { Billing } from './billing.entity';
+import { BillingStatus } from './billing-status.enum';
 
 @Entity('billing_items')
 export class BillingItem {

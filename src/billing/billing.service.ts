@@ -6,7 +6,8 @@ import { Business } from '../business/registration/business.entity';
 import { MbmbService } from '../mbmb/mbmb.service';
 import { format } from 'date-fns';
 import { InsertOnlineBillDto } from './dto/insert-online-bill.dto';
-import { Billing, BillingStatus } from './billing.entity';
+import { Billing } from './billing.entity';
+import { BillingStatus } from './billing-status.enum';
 import { BillingItem } from './billing.item.entity';
 import { CreateBillingDto } from './dto/create-billing.dto';
 // Razer callback removed; using MBMB callback instead

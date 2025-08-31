@@ -2,13 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Business } from '../business/registration/business.entity';
 import { User } from '../users/user.entity';
 import { BillingItem } from './billing.item.entity';
-
-export enum BillingStatus {
-    CREATED = 'CREATED',
-    PAID = 'PAID',
-    UNPAID = 'UNPAID',
-    SUCCESS = 'SUCCESS', // submitted to MBMB online bill
-}
+import { BillingStatus } from './billing-status.enum';
 
 @Entity('billings')
 export class Billing {
