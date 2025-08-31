@@ -18,13 +18,16 @@ export class BillingItem {
   @Column()
   order_no: string;
 
-  @Column({ length: 2 })
+  // Store in DB as 'item_type' to keep English column name
+  @Column({ name: 'item_type', length: 2 })
   jenis: string; // 01,02,04,05
 
-  @Column()
+  // Store in DB as 'account_no'
+  @Column({ name: 'account_no' })
   no_akaun: string;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2 })
+  // Store in DB as 'amount'
+  @Column({ name: 'amount', type: 'decimal', precision: 12, scale: 2 })
   amaun: number;
 
   // Track payment state per item as well
