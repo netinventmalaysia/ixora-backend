@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { DocumentVerification, VerificationStatus } from './document-verification.entity';
 import { Business } from '../business/registration/business.entity';
 import { UploadsEntity } from '../uploads/uploads.entity';
@@ -172,7 +172,7 @@ export class VerificationService {
     const take = Math.min(Math.max(params?.limit ?? 20, 1), 100);
     const skip = Math.max(params?.offset ?? 0, 0);
     const [data, total] = await this.repo.findAndCount({
-      where: { status: statuses.length === 1 ? statuses[0] : (statuses as any) },
+      where: { status: statuses.length === 1 ? statuses[0] : In(statuses) },
       relations: ['business', 'upload'],
       order: { createdAt: 'ASC' },
       take,
