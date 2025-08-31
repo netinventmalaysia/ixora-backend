@@ -19,9 +19,14 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'https://ixora.mbmb.gov.my',
-      'http://localhost:3001'
+      'http://localhost:3001',
     ],
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+    exposedHeaders: ['Content-Disposition'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // 2) Cookies
@@ -39,9 +44,13 @@ async function bootstrap() {
     'POST /users',
     'POST /hooks/ixora-backend',
     'GET  /hooks/ixora-backend',
+    // External callbacks shouldn't require CSRF
+    'POST /billings/callback/mbmb',
   ]);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
+    // Always let CORS preflight through
+    if (req.method === 'OPTIONS') return next();
     const key = `${req.method} ${req.path}`;
     if (csrfExcluded.has(key)) {
       return next();
