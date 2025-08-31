@@ -40,4 +40,9 @@ export class MbmbService {
     const path = `/mbmb/public/api/${resourcePath}`;
     return this.get<T>(path, params);
   }
+
+  async postPublicResource<T = any>(resourcePath: string, data?: any): Promise<T> {
+    const path = `/mbmb/public/api/${resourcePath}`;
+    return this.post<T>(path, data);
+  }
 }
