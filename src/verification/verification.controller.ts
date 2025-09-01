@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { VerificationService } from './verification.service';
 import { VerificationStatus } from './document-verification.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -24,7 +24,29 @@ export class VerificationController {
     @Body('reason') reason?: string,
   ) {
     const vid = parseInt(id, 10);
-    return this.verificationService.manualReview(vid, status, reason);
+    // Allow friendly aliases like "approved" -> PASSED, "rejected" -> FAILED
+    const raw = (status as unknown as string) || '';
+    const key = raw.toString().trim().toUpperCase();
+    const map: Record<string, VerificationStatus> = {
+      PASSED: VerificationStatus.PASSED,
+      APPROVED: VerificationStatus.PASSED,
+      APPROVE: VerificationStatus.PASSED,
+      PASS: VerificationStatus.PASSED,
+      FAILED: VerificationStatus.FAILED,
+      REJECTED: VerificationStatus.FAILED,
+      REJECT: VerificationStatus.FAILED,
+      FAIL: VerificationStatus.FAILED,
+      NEEDS_REVIEW: VerificationStatus.NEEDS_REVIEW,
+      REVIEW: VerificationStatus.NEEDS_REVIEW,
+      PENDING: VerificationStatus.PENDING,
+    };
+    const mapped = map[key];
+    if (!mapped) {
+      throw new BadRequestException('Invalid status. Use: approved, rejected, review, pending, passed, failed');
+    }
+    const result = await this.verificationService.manualReview(vid, mapped, reason);
+    if (!result) throw new NotFoundException('Verification not found');
+    return result;
   }
 
   @Patch(':id/process')
