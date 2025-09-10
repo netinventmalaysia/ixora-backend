@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { MbmbService } from './mbmb.service';
 
 @Controller('mbmb')
@@ -23,5 +23,15 @@ export class MbmbController {
     async getPublic(@Query('path') path: string, @Query() query: any) {
         const resource = path;
         return this.mbmb.getPublicResource(resource, query);
+    }
+
+    /**
+     * Proxy POST specifically for MBMB payment submit.
+     * Frontend calls: POST /mbmb/public/api/payment/submit with the required payload.
+     * This forwards to MBMB: /mbmb/public/api/payment/submit
+     */
+    @Post('public/api/payment/submit')
+    async postPaymentSubmit(@Body() body: any) {
+        return this.mbmb.postPublicResource('payment/submit', body);
     }
 }
