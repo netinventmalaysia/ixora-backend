@@ -206,7 +206,16 @@ export class BillingService {
       bill_desc: dto.billDesc,
       country: dto.country || 'MY',
     };
-    const res = await this.mbmb.postPublicResource(resourcePath, payload);
+    console.log('[BillingService] submitPayment -> resourcePath:', resourcePath);
+    console.log('[BillingService] submitPayment -> payload:', payload);
+    let res: any;
+    try {
+      res = await this.mbmb.postPublicResource(resourcePath, payload);
+    } catch (e: any) {
+      console.error('[BillingService] submitPayment -> MBMB error:', e?.response?.data ?? e?.message ?? e);
+      throw e;
+    }
+    console.log('[BillingService] submitPayment -> MBMB response:', res);
     // Expected: { status: true, url: 'https://...' }
     return { status: !!res?.status, url: res?.url };
   }

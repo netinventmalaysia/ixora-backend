@@ -63,8 +63,15 @@ export class BillingController {
   @Post('payment/submit')
   async submitPayment(@Body() body: PaymentSubmitDto) {
     try {
-      return await this.billing.submitPayment(body);
+  // Debug: incoming request body
+  console.log('[BillingController] submitPayment request body:', body);
+  const result = await this.billing.submitPayment(body);
+  console.log('[BillingController] submitPayment result:', result);
+  return result;
     } catch (err: any) {
+  // Debug: error details
+  const errData = err?.response?.data ?? err?.message ?? err;
+  console.error('[BillingController] submitPayment error:', errData);
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to create payment' }, HttpStatus.BAD_GATEWAY);
     }
