@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { MbmbService } from './mbmb.service';
 
+@ApiTags('MBMB')
 @Controller('mbmb')
 export class MbmbController {
     constructor(private readonly mbmb: MbmbService) { }

@@ -1,7 +1,9 @@
 import { Controller, Post, Get, Query, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { exec } from 'child_process';
 
+@ApiTags('Hooks')
 @Controller('hooks')
 export class HooksController {
   constructor(private readonly config: ConfigService) {}

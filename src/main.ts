@@ -11,6 +11,7 @@ import * as csurf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -72,7 +73,27 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // 6) Attach /auth/csrf-token and /version to *Nest's* Express instance
+  // 6) Swagger API docs
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('IXORA API')
+    .setDescription('REST API documentation for IXORA backend')
+    .setVersion('1.0.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Include JWT as: Bearer <token>'
+      },
+      'bearer'
+    )
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: { persistAuthorization: true },
+  });
+
+  // 7) Attach /auth/csrf-token and /version to *Nest's* Express instance
   const server = app.getHttpAdapter().getInstance();
 
   // Returns a one-time CSRF token (GET is "safe" and allowed by csurf)
@@ -90,7 +111,7 @@ async function bootstrap() {
     });
   });
 
-  // 7) Start
+  // 8) Start
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`🚀 Server listening on http://localhost:${port}`);

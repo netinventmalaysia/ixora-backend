@@ -12,11 +12,14 @@ import {
     Logger,
     UnauthorizedException,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TeamService } from './team.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 
+@ApiTags('Team')
+@ApiBearerAuth('bearer')
 @Controller('business')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class TeamController {

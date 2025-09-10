@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BillingService } from './billing.service';
 import { InvoiceDto } from './dto/invoice.dto';
 import { InsertOnlineBillDto } from './dto/insert-online-bill.dto';
@@ -7,6 +8,8 @@ import { CreateBillingDto } from './dto/create-billing.dto';
 import { MbmbCallbackDto } from './dto/mbmb-callback.dto';
 import { PaymentSubmitDto } from './dto/payment-submit.dto';
 
+@ApiTags('Billings')
+@ApiBearerAuth('bearer')
 @Controller(['billings', 'api/billings'])
 export class BillingController {
   constructor(private readonly billing: BillingService) { }

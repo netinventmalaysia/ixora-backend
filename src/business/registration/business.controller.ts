@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, Req, UseGuards, Param, Put, Patch } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BusinessService } from './business.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -6,6 +7,8 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 
+@ApiTags('Business')
+@ApiBearerAuth('bearer')
 @Controller('business')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BusinessController {

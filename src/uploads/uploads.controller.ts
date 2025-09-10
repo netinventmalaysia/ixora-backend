@@ -10,6 +10,7 @@ import {
   NotFoundException,
   Req,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
 import { UploadsEntity } from './uploads.entity';
@@ -21,6 +22,8 @@ import * as path from 'path';
 import * as mime from 'mime-types';
 import { SftpService } from '../sftp/sftp.service';
 
+@ApiTags('Uploads')
+@ApiBearerAuth('bearer')
 @Controller('uploads')
 export class UploadsController {
   constructor(

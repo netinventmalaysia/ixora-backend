@@ -1,10 +1,13 @@
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { VerificationService } from './verification.service';
 import { VerificationStatus } from './document-verification.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
+@ApiTags('Verification')
+@ApiBearerAuth('bearer')
 @Controller('verification')
 export class VerificationController {
   constructor(private readonly verificationService: VerificationService) {}

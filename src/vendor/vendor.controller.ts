@@ -1,9 +1,12 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { VendorService } from './vendor.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
+@ApiTags('Vendors')
+@ApiBearerAuth('bearer')
 @Controller('vendors')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
