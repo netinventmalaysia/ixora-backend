@@ -1,4 +1,5 @@
 import { IsEmail, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 import { OwnershipScope, OwnershipStatus } from '../ownership.entity';
 
 export class OwnershipItemDto {
@@ -17,6 +18,7 @@ export class OwnershipItemDto {
 }
 
 export class ListOwnershipQueryDto {
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   business_id: number;
@@ -30,11 +32,13 @@ export class ListOwnershipQueryDto {
   q?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   offset?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   limit?: number;

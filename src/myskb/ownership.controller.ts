@@ -15,8 +15,14 @@ export class MySkbOwnershipController {
   constructor(private readonly service: MySkbOwnershipService) {}
 
   @Get()
-  list(@Query() query: ListOwnershipQueryDto) {
-    return this.service.list(query);
+  list(@Query() query: ListOwnershipQueryDto & { businessId?: number }) {
+    // Support both business_id and businessId
+    if (!query.business_id && (query as any).businessId) {
+      (query as any).business_id = Number((query as any).businessId);
+    }
+    if (!query.limit) (query as any).limit = 50;
+    if (!query.offset) (query as any).offset = 0;
+    return this.service.list(query as ListOwnershipQueryDto);
   }
 
   @Post('invite')

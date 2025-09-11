@@ -70,7 +70,11 @@ async function bootstrap() {
   });
 
   // 5) Globals
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+    transformOptions: { enableImplicitConversion: true },
+  }));
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // 6) Swagger API docs
