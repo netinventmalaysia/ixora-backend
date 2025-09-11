@@ -19,36 +19,36 @@ export class MySkbOwnership {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'int' })
   businessId: number;
 
   @ManyToOne(() => Business)
   @JoinColumn({ name: 'businessId' })
   business: Business;
 
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
   userId: number | null;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'userId' })
   user: User | null;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   email: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   name: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   role: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   project: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   avatarUrl: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', length: 64, nullable: true })
   lastSeenIso: string | null;
 
   @Column({ type: 'enum', enum: OwnershipStatus, default: OwnershipStatus.PENDING })
@@ -57,7 +57,7 @@ export class MySkbOwnership {
   @Column({ type: 'enum', enum: OwnershipScope, nullable: true })
   scope: OwnershipScope | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', length: 64, nullable: true })
   inviteToken: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
