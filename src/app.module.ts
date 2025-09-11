@@ -14,9 +14,10 @@ import { MbmbModule } from './mbmb/mbmb.module';
 import { BillingModule } from './billing/billing.module';
 import { VerificationModule } from './verification/verification.module'; // Importing VerificationModule
 import { VendorModule } from './vendor/vendor.module';
+import { MySkbOwnershipModule } from './myskb/ownership.module';
 
 @Module({
-  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule, MbmbModule, BillingModule, VendorModule,
+  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule, MbmbModule, BillingModule, VendorModule, MySkbOwnershipModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
