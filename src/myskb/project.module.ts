@@ -5,9 +5,9 @@ import { MySkbProjectService } from './project.service';
 import { MySkbProjectController } from './project.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MySkbProject])],
-  providers: [MySkbProjectService],
-  controllers: [MySkbProjectController],
-  exports: [MySkbProjectService],
+    imports: [TypeOrmModule.forFeature([MySkbProject])],
+    providers: [MySkbProjectService],
+    controllers: [MySkbProjectController],
+    exports: [MySkbProjectService],
 })
-export class MySkbProjectModule {}
+export class MySkbProjectModule { }
