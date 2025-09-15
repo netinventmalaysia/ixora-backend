@@ -35,7 +35,7 @@ export class UploadsService {
         const ext = path.extname(file.originalname);
         const nameWithoutExt = path.basename(file.originalname, ext);
         const timestamp = Date.now();
-    const newFilename = `${timestamp}${ext}`
+        const newFilename = `${timestamp}${ext}`
         const remoteFilePath = path.posix.join(remoteFolderPath, newFilename);
 
         console.log('Creating folder:', remoteFolderPath);

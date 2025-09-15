@@ -13,7 +13,7 @@ export class MySkbOwnershipService {
     @InjectRepository(MySkbOwnership) private readonly repo: Repository<MySkbOwnership>,
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly mail: MailService,
-  ) {}
+  ) { }
 
   normalizeEmail(email: string) {
     return (email || '').trim().toLowerCase();

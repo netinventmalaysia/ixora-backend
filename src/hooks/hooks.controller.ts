@@ -6,7 +6,7 @@ import { exec } from 'child_process';
 @ApiTags('Hooks')
 @Controller('hooks')
 export class HooksController {
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   @Post('ixora-backend')
   @Get('ixora-backend')

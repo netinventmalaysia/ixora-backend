@@ -14,4 +14,4 @@ import { MailModule } from '../mail/mail.module';
   controllers: [VerificationController],
   exports: [VerificationService],
 })
-export class VerificationModule {}
+export class VerificationModule { }

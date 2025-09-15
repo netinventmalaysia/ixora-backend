@@ -11,4 +11,4 @@ import { MbmbModule } from '../mbmb/mbmb.module';
   controllers: [VendorController],
   exports: [VendorService],
 })
-export class VendorModule {}
+export class VendorModule { }

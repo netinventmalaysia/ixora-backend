@@ -54,8 +54,8 @@ export class BillingController {
   @Post('callback/mbmb')
   async mbmbCallback(@Body() body: MbmbCallbackDto) {
     try {
-  await this.billing.handleMbmbCallback(body);
-  return { data: 'ok' };
+      await this.billing.handleMbmbCallback(body);
+      return { data: 'ok' };
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to process MBMB callback' }, HttpStatus.BAD_REQUEST);
@@ -66,15 +66,15 @@ export class BillingController {
   @Post('payment/submit')
   async submitPayment(@Body() body: PaymentSubmitDto) {
     try {
-  // Debug: incoming request body
-  console.log('[BillingController] submitPayment request body:', body);
-  const result = await this.billing.submitPayment(body);
-  console.log('[BillingController] submitPayment result:', result);
-  return result;
+      // Debug: incoming request body
+      console.log('[BillingController] submitPayment request body:', body);
+      const result = await this.billing.submitPayment(body);
+      console.log('[BillingController] submitPayment result:', result);
+      return result;
     } catch (err: any) {
-  // Debug: error details
-  const errData = err?.response?.data ?? err?.message ?? err;
-  console.error('[BillingController] submitPayment error:', errData);
+      // Debug: error details
+      const errData = err?.response?.data ?? err?.message ?? err;
+      console.error('[BillingController] submitPayment error:', errData);
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to create payment' }, HttpStatus.BAD_GATEWAY);
     }

@@ -11,7 +11,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class VendorController {
-  constructor(private readonly service: VendorService) {}
+  constructor(private readonly service: VendorService) { }
 
   @Get('generate-key')
   async generateKey() {

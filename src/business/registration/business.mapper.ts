@@ -6,7 +6,7 @@ export function mapBusinessToListItem(business: Business) {
         name: business.companyName,
         href: `/business/${business.id}`,
         status: business.status,
-    createdBy: business.user ? `${business.user.firstName} ${business.user.lastName}` : (business.userId ?? 'Unknown'),
+        createdBy: business.user ? `${business.user.firstName} ${business.user.lastName}` : (business.userId ?? 'Unknown'),
         dueDate: business.createdAt.toLocaleDateString('en-GB'),
         dueDateTime: business.createdAt,
     };

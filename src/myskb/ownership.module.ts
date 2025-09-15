@@ -12,4 +12,4 @@ import { MailModule } from '../mail/mail.module';
   providers: [MySkbOwnershipService],
   exports: [MySkbOwnershipService],
 })
-export class MySkbOwnershipModule {}
+export class MySkbOwnershipModule { }

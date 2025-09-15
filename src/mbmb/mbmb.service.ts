@@ -5,7 +5,7 @@ import type { AxiosRequestConfig } from 'axios';
 
 @Injectable()
 export class MbmbService {
-  constructor(private readonly http: HttpService) {}
+  constructor(private readonly http: HttpService) { }
 
   async request<T = any>(
     method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',

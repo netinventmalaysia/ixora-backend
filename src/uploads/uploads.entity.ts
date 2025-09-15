@@ -21,8 +21,8 @@ export class UploadsEntity {
     @Column({ type: 'varchar', length: 512 })
     path: string; // relative remote path, e.g. `${folder}/${filename}`
 
-        @Column({ type: 'varchar', length: 255, nullable: true })
-        folder: string | null;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    folder: string | null;
 
     // File meta
     @Column({ type: 'varchar', length: 128, nullable: true })

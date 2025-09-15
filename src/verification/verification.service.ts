@@ -14,14 +14,14 @@ export class VerificationService {
   constructor(
     @InjectRepository(DocumentVerification)
     private readonly repo: Repository<DocumentVerification>,
-  @InjectRepository(Business)
-  private readonly businessRepo: Repository<Business>,
-  @InjectRepository(UploadsEntity)
-  private readonly uploadsRepo: Repository<UploadsEntity>,
-  private readonly sftpService: SftpService,
-  private readonly config: ConfigService,
-  private readonly mail: MailService,
-  ) {}
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
+    @InjectRepository(UploadsEntity)
+    private readonly uploadsRepo: Repository<UploadsEntity>,
+    private readonly sftpService: SftpService,
+    private readonly config: ConfigService,
+    private readonly mail: MailService,
+  ) { }
 
   async queueBusinessRegistrationVerification(params: {
     businessId: number;
@@ -78,12 +78,12 @@ export class VerificationService {
         const data = await pdfParse(buffer);
         text = (data.text || '').toString();
       } else if ((upload.mimeType || '').startsWith('image/') || /\.(png|jpe?g|bmp|tiff?)$/i.test(remotePath)) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const Tesseract = require('tesseract.js');
-  const ocrLangs = this.config.get<string>('OCR_LANGS') || 'eng+msa';
-  const langPath = this.config.get<string>('OCR_LANG_PATH');
-  const options = langPath ? { langPath } : undefined;
-  const { data } = await Tesseract.recognize(buffer, ocrLangs, options);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const Tesseract = require('tesseract.js');
+        const ocrLangs = this.config.get<string>('OCR_LANGS') || 'eng+msa';
+        const langPath = this.config.get<string>('OCR_LANG_PATH');
+        const options = langPath ? { langPath } : undefined;
+        const { data } = await Tesseract.recognize(buffer, ocrLangs, options);
         text = (data?.text || '').toString();
         if (!text.trim()) {
           ver.status = VerificationStatus.NEEDS_REVIEW;

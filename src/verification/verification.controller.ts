@@ -10,7 +10,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 @ApiBearerAuth('bearer')
 @Controller('verification')
 export class VerificationController {
-  constructor(private readonly verificationService: VerificationService) {}
+  constructor(private readonly verificationService: VerificationService) { }
 
   @Get('business/:id/latest')
   async getLatestForBusiness(@Param('id') id: string) {

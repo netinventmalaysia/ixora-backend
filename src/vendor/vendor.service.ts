@@ -9,7 +9,7 @@ export class VendorService {
   constructor(
     @InjectRepository(Vendor) private readonly repo: Repository<Vendor>,
     private readonly mbmb: MbmbService,
-  ) {}
+  ) { }
 
   async generateKey(): Promise<{ status: boolean; message: string; key?: string }> {
     const path = 'vendor/generate-key';

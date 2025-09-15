@@ -12,7 +12,7 @@ import { InviteOwnershipDto, ListOwnershipQueryDto, UpdateOwnershipDto } from '.
 @Roles('business', 'admin')
 @Controller('myskb/ownership')
 export class MySkbOwnershipController {
-  constructor(private readonly service: MySkbOwnershipService) {}
+  constructor(private readonly service: MySkbOwnershipService) { }
 
   @Get()
   list(@Query() query: ListOwnershipQueryDto & { businessId?: number }) {

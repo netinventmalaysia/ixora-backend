@@ -19,9 +19,9 @@ import { PaymentSubmitDto } from './dto/payment-submit.dto';
 export class BillingService {
   constructor(
     @InjectRepository(Business) private readonly businessRepo: Repository<Business>,
-  @InjectRepository(Billing) private readonly billingRepo: Repository<Billing>,
-  @InjectRepository(BillingItem) private readonly billingItemRepo: Repository<BillingItem>,
-  @InjectRepository(Payment) private readonly paymentRepo: Repository<Payment>,
+    @InjectRepository(Billing) private readonly billingRepo: Repository<Billing>,
+    @InjectRepository(BillingItem) private readonly billingItemRepo: Repository<BillingItem>,
+    @InjectRepository(Payment) private readonly paymentRepo: Repository<Payment>,
     private readonly mbmb: MbmbService,
   ) { }
 
@@ -181,11 +181,11 @@ export class BillingService {
     // Normalize status: treat 'Paid', 'N', '00', '1' as paid
     const s = (dto.status || '').toLowerCase();
     const paid = s === 'paid' || s === 'n' || s === '00' || s === '1';
-  billing.paymentGatewayStatus = dto.status || null;
+    billing.paymentGatewayStatus = dto.status || null;
     billing.paidAmount = dto.amount ? Number(dto.amount) : billing.paidAmount ?? null;
-  billing.paymentGatewayTransactionId = dto.tranID || billing.paymentGatewayTransactionId || null;
-  billing.paymentGatewayRefNo = dto.refNo || billing.paymentGatewayRefNo || null;
-  billing.paidAt = dto.paydate ? new Date(dto.paydate) : billing.paidAt ?? new Date();
+    billing.paymentGatewayTransactionId = dto.tranID || billing.paymentGatewayTransactionId || null;
+    billing.paymentGatewayRefNo = dto.refNo || billing.paymentGatewayRefNo || null;
+    billing.paidAt = dto.paydate ? new Date(dto.paydate) : billing.paidAt ?? new Date();
     billing.status = paid ? BillingStatus.PAID : BillingStatus.UNPAID;
 
     billing.items?.forEach((it) => { it.status = billing.status; });
