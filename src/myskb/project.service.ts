@@ -40,4 +40,40 @@ export class MySkbProjectService {
         const latest = await this.repo.find({ where: { businessId, userId }, order: { updatedAt: 'DESC' }, take: 1 });
         return latest[0] || null;
     }
+
+        async listDrafts(userId: number, limit = 20, offset = 0, businessId?: number) {
+                const qb = this.repo.createQueryBuilder('p')
+                .where('p.userId = :userId', { userId })
+                .andWhere('p.status = :status', { status: ProjectStatus.DRAFT })
+                .orderBy('p.updatedAt', 'DESC')
+                .skip(offset)
+                .take(limit);
+            if (businessId) qb.andWhere('p.businessId = :businessId', { businessId });
+                const [rows, total] = await qb.getManyAndCount();
+                const data = rows.map((p) => ({
+                    id: p.id,
+                    projectTitle: (p as any).data?.projectTitle ?? null,
+                    created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
+                    status: 'Draft',
+                }));
+                return { data, total, limit, offset };
+        }
+
+        async list(userId: number, status?: ProjectStatus, limit = 20, offset = 0, businessId?: number) {
+                const qb = this.repo.createQueryBuilder('p')
+                .where('p.userId = :userId', { userId })
+                .orderBy('p.updatedAt', 'DESC')
+                .skip(offset)
+                .take(limit);
+            if (status) qb.andWhere('p.status = :status', { status });
+            if (businessId) qb.andWhere('p.businessId = :businessId', { businessId });
+                const [rows, total] = await qb.getManyAndCount();
+                const data = rows.map((p) => ({
+                    id: p.id,
+                    projectTitle: (p as any).data?.projectTitle ?? null,
+                    created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
+                    status: p.status === ProjectStatus.DRAFT ? 'Draft' : 'Submitted',
+                }));
+                return { data, total, limit, offset };
+        }
 }

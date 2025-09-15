@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsNotEmpty, IsObject, IsOptional, ValidateIf } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsObject, IsOptional, Min, ValidateIf } from 'class-validator';
 
 export class UpsertDraftDto {
     @ApiProperty({ name: 'business_id', type: Number })
@@ -31,4 +31,34 @@ export class SubmitProjectDto {
     @ValidateIf((o) => !o.useDraft)
     @IsObject()
     data?: Record<string, any>;
+}
+
+export class ListDraftsQueryDto {
+    @IsOptional()
+    @Type(() => Number)
+    @Transform(({ value }) => (value !== undefined ? Number(value) : 20))
+    @IsInt()
+    @Min(0)
+    limit?: number = 20;
+
+    @IsOptional()
+    @Type(() => Number)
+    @Transform(({ value }) => (value !== undefined ? Number(value) : 0))
+    @IsInt()
+    @Min(0)
+    offset?: number = 0;
+
+    // Optional: filter by a specific business
+    @IsOptional()
+    @Type(() => Number)
+    @Transform(({ value }) => (value !== undefined ? Number(value) : undefined))
+    @IsInt()
+    business_id?: number;
+}
+
+export class ListProjectsQueryDto extends ListDraftsQueryDto {
+    @IsOptional()
+    @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() : value))
+    @IsIn(['draft', 'submitted'])
+    status?: 'draft' | 'submitted';
 }

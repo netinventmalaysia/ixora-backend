@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { UpsertDraftDto, SubmitProjectDto } from './dto/project.dto';
+import { UpsertDraftDto, SubmitProjectDto, ListDraftsQueryDto, ListProjectsQueryDto } from './dto/project.dto';
 import { MySkbProjectService } from './project.service';
 
 @ApiTags('MySKB Project')
@@ -32,4 +32,23 @@ export class MySkbProjectController {
         const res = await this.service.latest(businessId, userId);
         return res ? { id: res.id, status: res.status, updated_at: res.updatedAt } : null;
     }
+
+        // Primary: GET /myskb/project/draft
+        @Get('draft')
+        async listDrafts(@Query() q: ListDraftsQueryDto, @Req() req: any) {
+            const userId: number = req.user?.userId || req.user?.id;
+            const { limit = 20, offset = 0, business_id } = q;
+            const result = await this.service.listDrafts(userId, limit, offset, business_id);
+            return result;
+        }
+
+        // Fallback: GET /myskb/project?status=Draft
+        @Get()
+        async list(@Query() q: ListProjectsQueryDto, @Req() req: any) {
+            const userId: number = req.user?.userId || req.user?.id;
+            const { limit = 20, offset = 0, business_id, status } = q;
+            const normalizedStatus = status as any; // DTO restricts to 'draft' | 'submitted'
+            const result = await this.service.list(userId, normalizedStatus, limit, offset, business_id);
+            return result;
+        }
 }
