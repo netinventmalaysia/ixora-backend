@@ -54,15 +54,15 @@ export class PushController {
         return this.service.generateVapidKeys();
     }
 
-        // Admin-only: list subscriptions
-        @ApiBearerAuth('bearer')
-        @UseGuards(JwtAuthGuard, RolesGuard)
-        @Roles('admin')
-        @Get('subscriptions')
-        async listSubs(@Req() req: any) {
-            const userId = req.query.userId ? Number(req.query.userId) : undefined;
-            const limit = req.query.limit ? Number(req.query.limit) : undefined;
-            const offset = req.query.offset ? Number(req.query.offset) : undefined;
-            return this.service.list({ userId, limit, offset });
-        }
+    // Admin-only: list subscriptions
+    @ApiBearerAuth('bearer')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @Get('subscriptions')
+    async listSubs(@Req() req: any) {
+        const userId = req.query.userId ? Number(req.query.userId) : undefined;
+        const limit = req.query.limit ? Number(req.query.limit) : undefined;
+        const offset = req.query.offset ? Number(req.query.offset) : undefined;
+        return this.service.list({ userId, limit, offset });
+    }
 }

@@ -130,19 +130,19 @@ export class PushService {
         return { sent, failed: failedIds.length, failedIds: failedIds.length ? failedIds : undefined };
     }
 
-        async list(opts: { userId?: number; limit?: number; offset?: number }) {
-            const take = opts.limit && opts.limit > 0 ? opts.limit : 50;
-            const skip = opts.offset && opts.offset >= 0 ? opts.offset : 0;
-            const where = opts.userId ? { userId: opts.userId } : {};
-            const [rows, total] = await this.repo.findAndCount({ where, take, skip, order: { updatedAt: 'DESC' } });
-            const data = rows.map((r) => ({
-                id: r.id,
-                userId: r.userId,
-                endpoint: r.endpoint,
-                last_seen_at: r.lastSeenAt ? r.lastSeenAt.toISOString() : null,
-                created_at: r.createdAt ? r.createdAt.toISOString() : null,
-                updated_at: r.updatedAt ? r.updatedAt.toISOString() : null,
-            }));
-            return { data, total, limit: take, offset: skip };
-        }
+    async list(opts: { userId?: number; limit?: number; offset?: number }) {
+        const take = opts.limit && opts.limit > 0 ? opts.limit : 50;
+        const skip = opts.offset && opts.offset >= 0 ? opts.offset : 0;
+        const where = opts.userId ? { userId: opts.userId } : {};
+        const [rows, total] = await this.repo.findAndCount({ where, take, skip, order: { updatedAt: 'DESC' } });
+        const data = rows.map((r) => ({
+            id: r.id,
+            userId: r.userId,
+            endpoint: r.endpoint,
+            last_seen_at: r.lastSeenAt ? r.lastSeenAt.toISOString() : null,
+            created_at: r.createdAt ? r.createdAt.toISOString() : null,
+            updated_at: r.updatedAt ? r.updatedAt.toISOString() : null,
+        }));
+        return { data, total, limit: take, offset: skip };
+    }
 }
