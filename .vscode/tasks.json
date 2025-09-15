@@ -1,21 +1,37 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Docker Compose Up (Dev)",
-      "type": "shell",
-      "command": "docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build",
-      "problemMatcher": [],
-      "group": "build",
-      "detail": "Run Docker Compose for dev with hot reload"
-    },
-    {
-      "label": "Docker Compose Up (Prod)",
-      "type": "shell",
-      "command": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d",
-      "problemMatcher": [],
-      "group": "build",
-      "detail": "Run Docker Compose for production"
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Docker Compose Up (Dev)",
+			"type": "shell",
+			"command": "docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build",
+			"problemMatcher": [],
+			"group": "build",
+			"detail": "Run Docker Compose for dev with hot reload"
+		},
+		{
+			"label": "Docker Compose Up (Prod)",
+			"type": "shell",
+			"command": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d",
+			"problemMatcher": [],
+			"group": "build",
+			"detail": "Run Docker Compose for production"
+		},
+		{
+			"label": "TypeORM Migration Run",
+			"type": "shell",
+			"command": "npm run typeorm -- migration:show",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Migrations",
+			"type": "shell",
+			"command": "npm run migration:run",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
 }
