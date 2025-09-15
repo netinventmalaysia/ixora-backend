@@ -6,34 +6,34 @@ import { User } from '../users/user.entity';
 @Index(['userId'])
 @Index(['endpoint'])
 export class PushSubscription {
-  @PrimaryGeneratedColumn()
-  id: number;
+    @PrimaryGeneratedColumn()
+    id: number;
 
-  @Column({ type: 'int' })
-  userId: number;
+    @Column({ type: 'int' })
+    userId: number;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
-  user: User;
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'userId' })
+    user: User;
 
-  @Column({ type: 'varchar', length: 500 })
-  endpoint: string;
+    @Column({ type: 'varchar', length: 500 })
+    endpoint: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  p256dh: string;
+    @Column({ type: 'varchar', length: 255 })
+    p256dh: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  auth: string;
+    @Column({ type: 'varchar', length: 255 })
+    auth: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  userAgent: string | null;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    userAgent: string | null;
 
-  @Column({ type: 'timestamp', nullable: true })
-  lastSeenAt: Date | null;
+    @Column({ type: 'timestamp', nullable: true })
+    lastSeenAt: Date | null;
 
-  @CreateDateColumn()
-  createdAt: Date;
+    @CreateDateColumn()
+    createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+    @UpdateDateColumn()
+    updatedAt: Date;
 }

@@ -5,9 +5,9 @@ import { PushService } from './push.service';
 import { PushController } from './push.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PushSubscription])],
-  providers: [PushService],
-  controllers: [PushController],
-  exports: [PushService],
+    imports: [TypeOrmModule.forFeature([PushSubscription])],
+    providers: [PushService],
+    controllers: [PushController],
+    exports: [PushService],
 })
-export class PushModule {}
+export class PushModule { }
