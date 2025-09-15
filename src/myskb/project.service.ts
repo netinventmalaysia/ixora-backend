@@ -76,6 +76,9 @@ export class MySkbProjectService {
             projectTitle: (p as any).data?.projectTitle ?? null,
             created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
             status: p.status === ProjectStatus.DRAFT ? 'Draft' : 'Submitted',
+            data: p.data,
+            businessId: p.businessId,
+            userId: p.userId,
         }));
         return { data, total, limit, offset };
     }
