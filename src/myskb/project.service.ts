@@ -36,6 +36,27 @@ export class MySkbProjectService {
         return submission;
     }
 
+    async updateDraftById(id: number, businessId: number, userId: number, data: Record<string, any>) {
+        const draft = await this.repo.findOne({ where: { id, businessId, userId } });
+        if (!draft) throw new NotFoundException('Draft not found');
+        if (draft.status !== ProjectStatus.DRAFT) return draft; // idempotent for submitted
+        draft.data = data;
+        await this.repo.save(draft);
+        return draft;
+    }
+
+    async submitDraftById(id: number, businessId: number, userId: number, data?: Record<string, any>) {
+        const draft = await this.repo.findOne({ where: { id, businessId, userId } });
+        if (!draft) throw new NotFoundException('Draft not found');
+        if (data) draft.data = data;
+        if (draft.status === ProjectStatus.SUBMITTED) {
+            return draft; // idempotent
+        }
+        draft.status = ProjectStatus.SUBMITTED;
+        await this.repo.save(draft);
+        return draft;
+    }
+
     async latest(businessId: number, userId: number) {
         const latest = await this.repo.find({ where: { businessId, userId }, order: { updatedAt: 'DESC' }, take: 1 });
         return latest[0] || null;

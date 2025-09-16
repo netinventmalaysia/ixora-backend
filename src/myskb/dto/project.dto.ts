@@ -31,6 +31,26 @@ export class SubmitProjectDto {
     @ValidateIf((o) => !o.useDraft)
     @IsObject()
     data?: Record<string, any>;
+
+    @ApiPropertyOptional({ description: 'If provided, submit the specified draft id in-place' })
+    @IsOptional()
+    @Type(() => Number)
+    @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+    @IsInt()
+    draft_id?: number;
+}
+
+export class SubmitDraftByIdDto {
+    @ApiProperty({ name: 'business_id', type: Number })
+    @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+    @Type(() => Number)
+    @IsInt()
+    business_id: number;
+
+    @ApiPropertyOptional({ description: 'If provided, save changes before submitting', type: Object })
+    @IsOptional()
+    @IsObject()
+    data?: Record<string, any>;
 }
 
 export class ListDraftsQueryDto {

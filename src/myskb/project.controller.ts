@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { UpsertDraftDto, SubmitProjectDto, ListDraftsQueryDto, ListProjectsQueryDto } from './dto/project.dto';
+import { UpsertDraftDto, SubmitProjectDto, ListDraftsQueryDto, ListProjectsQueryDto, SubmitDraftByIdDto } from './dto/project.dto';
 import { MySkbProjectService } from './project.service';
 
 @ApiTags('MySKB Project')
@@ -21,8 +21,28 @@ export class MySkbProjectController {
     @Post('submit')
     async submit(@Body() dto: SubmitProjectDto, @Req() req: any) {
         const userId: number = req.user?.userId || req.user?.id;
+        if (dto.draft_id) {
+            const saved = await this.service.submitDraftById(Number(dto.draft_id), dto.business_id, userId, dto.data);
+            return { id: saved.id, status: saved.status };
+        }
         const created = await this.service.submit(dto.business_id, userId, dto.data, dto.useDraft);
         return { id: created.id, status: created.status };
+    }
+
+    // Update an existing draft by id
+    @Put('draft/:id')
+    async updateDraft(@Param('id') id: string, @Body() dto: UpsertDraftDto, @Req() req: any) {
+        const userId: number = req.user?.userId || req.user?.id;
+        const saved = await this.service.updateDraftById(parseInt(id, 10), dto.business_id, userId, dto.data);
+        return { id: saved.id, status: saved.status, updated_at: saved.updatedAt };
+    }
+
+    // Submit an existing draft by id (optionally save latest data first)
+    @Post('draft/:id/submit')
+    async submitDraft(@Param('id') id: string, @Body() dto: SubmitDraftByIdDto, @Req() req: any) {
+        const userId: number = req.user?.userId || req.user?.id;
+        const saved = await this.service.submitDraftById(parseInt(id, 10), dto.business_id, userId, dto.data);
+        return { id: saved.id, status: saved.status };
     }
 
     @Get('latest')
