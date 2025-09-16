@@ -1,7 +1,7 @@
 import { BadRequestException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import webpush from 'web-push';
+import * as webpush from 'web-push';
 import { PushSubscription } from './push-subscription.entity';
 
 @Injectable()
@@ -32,8 +32,7 @@ export class PushService {
 
     generateVapidKeys() {
         // For ops use: generate once and store securely in vault/secrets.
-        const keys = (require('web-push') as typeof import('web-push')).generateVAPIDKeys();
-        return keys; // { publicKey, privateKey }
+        return webpush.generateVAPIDKeys(); // { publicKey, privateKey }
     }
 
     async upsertSubscription(userId: number, sub: any, userAgent?: string) {
@@ -116,7 +115,7 @@ export class PushService {
                 await webpush.sendNotification(this.toWebPushSubscription(t), payload, { TTL: ttl });
                 sent++;
             } catch (err: any) {
-                const status = err?.statusCode || err?.statusCode || err?.status;
+                const status = err?.statusCode ?? err?.status;
                 this.logger.warn(`Push send failed for ${t.id}: ${status}`);
                 if (status === 404 || status === 410) {
                     // stale subscription; remove
