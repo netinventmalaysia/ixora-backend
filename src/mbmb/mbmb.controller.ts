@@ -78,8 +78,13 @@ export class MbmbController {
     @ApiResponse({ status: 200, description: '{ data: AssessmentBill[] }' })
     async getAssessmentOutstanding(@Req() req: Request, @Query() query: AssessmentOutstandingQueryDto) {
         this.ensureRateLimit(req, 'assessment');
-        const key = this.validateOneOf(query as any, ['ic', 'assessment_no']);
-        const params: any = key === 'ic' ? { ic: query.ic } : { assessment_no: query.assessment_no };
+        // Mapping (FE -> Upstream): account_no -> no_akaun, bill_no -> no_bil, ic/no_kp -> no_kp
+        const ic = query.ic || query.no_kp;
+        const accountNo = query.account_no || query.assessment_no; // support legacy
+        const billNo = query.bill_no;
+        const key = this.validateOneOf({ ic, accountNo, billNo }, ['ic', 'accountNo']);
+        const params: any = key === 'ic' ? { no_kp: ic } : { no_akaun: accountNo };
+        if (billNo) params.no_bil = billNo;
         const raw = await this.mbmb.getPublicResource('assessment/outstanding', params);
         return { data: this.mapToBills(raw) };
     }
@@ -89,8 +94,13 @@ export class MbmbController {
     @ApiResponse({ status: 200, description: '{ data: CompoundBill[] }' })
     async getCompoundOutstanding(@Req() req: Request, @Query() query: CompoundOutstandingQueryDto) {
         this.ensureRateLimit(req, 'compound');
-        const key = this.validateOneOf(query as any, ['ic', 'compound_no']);
-        const params: any = key === 'ic' ? { ic: query.ic } : { compound_no: query.compound_no };
+        // Mapping (FE -> Upstream): compound_no -> nokmp, vehicel_registration_no/vehicle_registration_no -> nodaftar, ic/no_kp/noicmilik -> noicmilik
+        const ic = query.ic || query.no_kp || query.noicmilik;
+        const compoundNo = query.compound_no;
+        const vehicleReg = query.vehicel_registration_no || query.vehicle_registration_no;
+        const key = this.validateOneOf({ ic, compoundNo, vehicleReg }, ['ic', 'compoundNo']);
+        const params: any = key === 'ic' ? { noicmilik: ic } : { nokmp: compoundNo };
+        if (vehicleReg) params.nodaftar = vehicleReg;
         const raw = await this.mbmb.getPublicResource('compound/outstanding', params);
         return { data: this.mapToBills(raw) };
     }
@@ -100,8 +110,11 @@ export class MbmbController {
     @ApiResponse({ status: 200, description: '{ data: BoothBill[] }' })
     async getBoothOutstanding(@Req() req: Request, @Query() query: BoothOutstandingQueryDto) {
         this.ensureRateLimit(req, 'booth');
-        const key = this.validateOneOf(query as any, ['ic', 'booth_no']);
-        const params: any = key === 'ic' ? { ic: query.ic } : { booth_no: query.booth_no };
+        // Mapping (FE -> Upstream): account_no -> no_akaun, ic/no_kp -> no_kp
+        const ic = query.ic || query.no_kp;
+        const accountNo = query.account_no || query.booth_no; // booth_no legacy
+        const key = this.validateOneOf({ ic, accountNo }, ['ic', 'accountNo']);
+        const params: any = key === 'ic' ? { no_kp: ic } : { no_akaun: accountNo };
         const raw = await this.mbmb.getPublicResource('booth/outstanding', params);
         return { data: this.mapToBills(raw) };
     }
@@ -111,12 +124,15 @@ export class MbmbController {
     @ApiResponse({ status: 200, description: '{ data: MiscBill[] }' })
     async getMiscOutstanding(@Req() req: Request, @Query() query: MiscOutstandingQueryDto) {
         this.ensureRateLimit(req, 'misc');
-        // accept alias bill_no
-        const misc_no = query.misc_no || query.bill_no;
-        const q = { ...query, misc_no } as any;
-        const key = this.validateOneOf(q, ['ic', 'misc_no']);
-        const params: any = key === 'ic' ? { ic: query.ic } : { misc_no };
-        const raw = await this.mbmb.getPublicResource('misc/outstanding', params);
+        // Mapping (FE -> Upstream): account_no -> no_akaun, ic/no_kp -> no_kp
+        const ic = query.ic || query.no_kp;
+        const accountNo = query.account_no || query.misc_no || query.bill_no; // legacy support
+        const key = this.validateOneOf({ ic, accountNo }, ['ic', 'accountNo']);
+        const params: any = key === 'ic'
+            ? { columnName: 'no_kp', columnValue: ic }
+            : { columnName: 'no_akaun', columnValue: accountNo };
+        // New MBMB path for miscellaneous bills via generic columnName/columnValue
+        const raw = await this.mbmb.getPublicResource('miscellaneous-bills', params);
         return { data: this.mapToBills(raw) };
     }
 }
