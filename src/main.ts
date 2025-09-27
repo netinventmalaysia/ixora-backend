@@ -23,6 +23,7 @@ async function bootstrap() {
       'http://localhost:3001'
     ],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
   });
 
   // 2) Cookies
@@ -49,13 +50,15 @@ async function bootstrap() {
     if (csrfExcluded.has(key)) {
       return next();
     }
+    const sameSite = (process.env.CSRF_SAMESITE as any) || (process.env.NODE_ENV === 'production' ? 'none' : 'lax');
+    const secure = process.env.CSRF_SECURE ? process.env.CSRF_SECURE === 'true' : process.env.NODE_ENV === 'production';
     return (csurf({
       cookie: {
         // With our flow we DON'T read this cookie in JS (we fetch token from /auth/csrf-token),
         // so make it HttpOnly and secure in prod.
         httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        sameSite,
+        secure,
       },
       value: (r) => (r.headers['x-csrf-token'] as string) || '',
     }) as any)(req, res, next);
