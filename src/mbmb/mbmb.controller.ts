@@ -56,13 +56,19 @@ export class MbmbController {
     private mapToBills(raw: any): PublicBill[] {
         // Accept array or objects; try to normalize common MBMB shapes
         const arr = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
-        return arr.map((it: any) => ({
-            id: it?.id ?? it?.bill_no ?? it?.no ?? it?.reference ?? it?.ref ?? it?.seq ?? '',
-            bill_no: String(it?.bill_no ?? it?.billNo ?? it?.no ?? it?.reference ?? it?.ref ?? it?.seq ?? ''),
-            amount: typeof it?.amount === 'number' ? it.amount : Number(it?.amount ?? it?.total ?? it?.value ?? 0),
-            due_date: String(it?.due_date ?? it?.dueDate ?? it?.expiry ?? it?.date ?? ''),
-            description: it?.description ?? it?.desc ?? it?.title ?? undefined,
-        }));
+        return arr.map((it: any) => {
+            const id = it?.id ?? it?.bill_no ?? it?.no ?? it?.reference ?? it?.ref ?? it?.seq ?? it?.nokmp ?? '';
+            const billNo = String(it?.bill_no ?? it?.billNo ?? it?.no ?? it?.reference ?? it?.ref ?? it?.seq ?? it?.nokmp ?? '');
+            let amount: number;
+            if (typeof it?.amount === 'number') amount = it.amount;
+            else {
+                const amountStr = it?.amount ?? it?.total ?? it?.value ?? it?.amnterkini ?? it?.amnkmp ?? it?.amaun ?? '0';
+                amount = Number(amountStr);
+            }
+            const dueDate = String(it?.due_date ?? it?.dueDate ?? it?.expiry ?? it?.date ?? it?.trkhkmp ?? '');
+            const description = it?.description ?? it?.desc ?? it?.title ?? it?.butirsalah ?? undefined;
+            return { id, bill_no: billNo, amount, due_date: dueDate, description };
+        });
     }
 
     private ensureRateLimit(req: Request, bucket: string) {
@@ -94,14 +100,20 @@ export class MbmbController {
     @ApiResponse({ status: 200, description: '{ data: CompoundBill[] }' })
     async getCompoundOutstanding(@Req() req: Request, @Query() query: CompoundOutstandingQueryDto) {
         this.ensureRateLimit(req, 'compound');
-        // Mapping (FE -> Upstream): compound_no -> nokmp, vehicel_registration_no/vehicle_registration_no -> nodaftar, ic/no_kp/noicmilik -> noicmilik
+        // Use generic endpoint with columnName/columnValue
+        // Mapping priority: compound_no -> nokmp, else ic/no_kp/noicmilik -> noicmilik, else vehicle_registration_no -> nodaftar
         const ic = query.ic || query.no_kp || query.noicmilik;
         const compoundNo = query.compound_no;
         const vehicleReg = query.vehicel_registration_no || query.vehicle_registration_no;
-        const key = this.validateOneOf({ ic, compoundNo, vehicleReg }, ['ic', 'compoundNo']);
-        const params: any = key === 'ic' ? { noicmilik: ic } : { nokmp: compoundNo };
-        if (vehicleReg) params.nodaftar = vehicleReg;
-        const raw = await this.mbmb.getPublicResource('compound/outstanding', params);
+        let columnName: 'nokmp' | 'noicmilik' | 'nodaftar' | undefined;
+        let columnValue: string | undefined;
+        if (compoundNo) { columnName = 'nokmp'; columnValue = compoundNo; }
+        else if (ic) { columnName = 'noicmilik'; columnValue = ic; }
+        else if (vehicleReg) { columnName = 'nodaftar'; columnValue = vehicleReg; }
+        if (!columnName || !columnValue) {
+            throw new BadRequestException({ error: 'BadRequest', message: 'Provide either ic or compound_no' });
+        }
+        const raw = await this.mbmb.getPublicResource('compound', { columnName, columnValue });
         return { data: this.mapToBills(raw) };
     }
 

@@ -17,6 +17,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         if (typeof res === 'string') message = res;
         else if (res?.message) {
             if (Array.isArray(res.message)) message = res.message.join('; ');
+            else if (typeof res.message === 'object') message = JSON.stringify(res.message);
             else message = String(res.message);
         } else if (res?.error) message = String(res.error);
         else message = exception.message || 'Unexpected error';
@@ -25,6 +26,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             success: false,
             statusCode: status,
             message,
+            error: res?.error || undefined,
             timestamp: new Date().toISOString(),
         });
     }

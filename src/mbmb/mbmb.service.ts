@@ -19,8 +19,13 @@ export class MbmbService {
       return response.data;
     } catch (err: any) {
       const status = err?.response?.status || HttpStatus.BAD_GATEWAY;
-      const message = err?.response?.data || err?.message || 'MBMB request failed';
-      throw new HttpException({ message, details: err?.response?.data }, status);
+      const details = err?.response?.data;
+      let message: string;
+      if (typeof details === 'string') message = details;
+      else if (details?.message && typeof details.message === 'string') message = details.message;
+      else if (details && typeof details === 'object') message = JSON.stringify(details);
+      else message = err?.message || 'MBMB request failed';
+      throw new HttpException({ error: 'UpstreamError', message, details }, status);
     }
   }
 
