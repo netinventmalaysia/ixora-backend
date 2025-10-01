@@ -12,7 +12,11 @@ export class MbmbService {
 
   private parseTokenResponse(resp: any): { token?: string; expiresInSec?: number } {
     if (!resp) return {};
-    const token = resp?.token || resp?.access_token || resp?.data?.token || resp?.data?.access_token;
+    let token: any = resp?.token || resp?.access_token || resp?.data?.token || resp?.data?.access_token;
+    // If token is an object like { access_token: '...' }, extract the string value
+    if (token && typeof token === 'object' && token.access_token) {
+      token = token.access_token;
+    }
     const expiresInSec = resp?.expires_in || resp?.data?.expires_in;
     return { token, expiresInSec };
   }
