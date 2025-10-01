@@ -18,9 +18,10 @@ export class MbmbService {
   }
 
   private async fetchVendorToken(): Promise<{ token: string; ttlMs: number }> {
-    const name = this.config.get<string>('MBMB_VENDOR_NAME');
-    const key = this.config.get<string>('MBMB_VENDOR_KEY');
-    const appName = this.config.get<string>('MBMB_VENDOR_APP_NAME');
+    // Hardcoded fallbacks as requested
+    const name = this.config.get<string>('MBMB_VENDOR_NAME') || 'IXORA';
+    const key = this.config.get<string>('MBMB_VENDOR_KEY') || 'SOpkaC8OWF';
+    const appName = this.config.get<string>('MBMB_VENDOR_APP_NAME') || 'IXOR';
     if (!name || !key || !appName) {
       throw new HttpException({ error: 'ConfigError', message: 'Missing MBMB vendor credentials (MBMB_VENDOR_NAME/KEY/APP_NAME)' }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
