@@ -57,16 +57,54 @@ export class MbmbController {
         // Accept array or objects; try to normalize common MBMB shapes
         const arr = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
         return arr.map((it: any) => {
-            const id = it?.id ?? it?.bill_no ?? it?.no ?? it?.reference ?? it?.ref ?? it?.seq ?? it?.nokmp ?? '';
-            const billNo = String(it?.bill_no ?? it?.billNo ?? it?.no ?? it?.reference ?? it?.ref ?? it?.seq ?? it?.nokmp ?? '');
-            let amount: number;
-            if (typeof it?.amount === 'number') amount = it.amount;
-            else {
-                const amountStr = it?.amount ?? it?.total ?? it?.value ?? it?.amnterkini ?? it?.amnkmp ?? it?.amaun ?? '0';
-                amount = Number(amountStr);
+            // Identify context by presence of distinctive fields
+            const isMisc = !!it?.no_akaun || !!it?.trk_bil;
+            const isCompound = !!it?.nokmp || !!it?.noicmilik;
+
+            // id resolution
+            let id = it?.id;
+            if (!id) {
+                if (isMisc) id = it?.no_akaun || it?.no_rujukan;
+                else if (isCompound) id = it?.nokmp || it?.noicmilik;
+                else id = it?.bill_no || it?.no || it?.reference || it?.ref || it?.seq;
             }
-            const dueDate = String(it?.due_date ?? it?.dueDate ?? it?.expiry ?? it?.date ?? it?.trkhkmp ?? '');
-            const description = it?.description ?? it?.desc ?? it?.title ?? it?.butirsalah ?? undefined;
+            if (id == null) id = '';
+
+            // bill number resolution
+            let billNo = it?.bill_no || it?.billNo;
+            if (!billNo) {
+                if (isMisc) billNo = it?.no_rujukan || it?.no_akaun;
+                else if (isCompound) billNo = it?.nokmp;
+                else billNo = it?.no || it?.reference || it?.ref || it?.seq;
+            }
+            billNo = String(billNo || '');
+
+            // amount resolution (prefer explicit totals for misc)
+            let amount: number | undefined;
+            const amountCandidates = [
+                it?.amount,
+                it?.jumlah, // misc total
+                it?.amaun_bil, // misc bill amount
+                it?.total,
+                it?.value,
+                it?.amnterkini,
+                it?.amnkmp,
+                it?.amaun,
+            ];
+            for (const c of amountCandidates) {
+                if (c != null && c !== '') { amount = typeof c === 'number' ? c : Number(c); break; }
+            }
+            if (typeof amount !== 'number' || isNaN(amount)) amount = 0;
+
+            // due date
+            let dueDate = it?.due_date || it?.dueDate || it?.expiry || it?.date || it?.trkhkmp || it?.trk_bil;
+            if (dueDate == null) dueDate = '';
+            dueDate = String(dueDate);
+
+            // description
+            let description = it?.description || it?.desc || it?.title || it?.butirsalah;
+            if (!description && isMisc) description = it?.catitan1 || it?.catitan2 || undefined;
+
             return { id, bill_no: billNo, amount, due_date: dueDate, description };
         });
     }
