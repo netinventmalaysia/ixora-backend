@@ -58,8 +58,9 @@ export class MbmbController {
         const arr = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
         return arr.map((it: any) => {
             // Identify context by presence of distinctive fields
-            const isMisc = !!it?.no_akaun || !!it?.trk_bil;
+            const isMisc = !!it?.no_akaun && !!it?.jumlah && !!it?.amaun_bil;
             const isCompound = !!it?.nokmp || !!it?.noicmilik;
+            const isAssessment = !!it?.no_akaun && !!it?.no_bil && !!it?.jumlah && it?.jenis === '01';
 
             // id resolution
             let id = it?.id;
@@ -81,23 +82,25 @@ export class MbmbController {
 
             // amount resolution (prefer explicit totals for misc)
             let amount: number | undefined;
-            const amountCandidates = [
-                it?.amount,
-                it?.jumlah, // misc total
-                it?.amaun_bil, // misc bill amount
-                it?.total,
-                it?.value,
-                it?.amnterkini,
-                it?.amnkmp,
-                it?.amaun,
-            ];
+            const amountCandidates = isAssessment
+                ? [it?.jumlah, it?.cukai, it?.cukai_sepenggal, it?.amount]
+                : [
+                    it?.amount,
+                    it?.jumlah, // misc/assessment total
+                    it?.amaun_bil, // misc bill amount
+                    it?.total,
+                    it?.value,
+                    it?.amnterkini,
+                    it?.amnkmp,
+                    it?.amaun,
+                ];
             for (const c of amountCandidates) {
                 if (c != null && c !== '') { amount = typeof c === 'number' ? c : Number(c); break; }
             }
             if (typeof amount !== 'number' || isNaN(amount)) amount = 0;
 
             // due date
-            let dueDate = it?.due_date || it?.dueDate || it?.expiry || it?.date || it?.trkhkmp || it?.trk_bil;
+            let dueDate = it?.due_date || it?.dueDate || it?.expiry || it?.date || it?.trkhkmp || it?.trk_end_bayar || it?.trk_bil;
             if (dueDate == null) dueDate = '';
             dueDate = String(dueDate);
 
@@ -135,7 +138,8 @@ export class MbmbController {
         if (!columnName || !columnValue) {
             throw new BadRequestException({ error: 'BadRequest', message: 'Provide either ic or account_no' });
         }
-        const raw = await this.mbmb.getPublicResource('assessment', { columnName, columnValue });
+        // Correct upstream path is assessment-tax
+        const raw = await this.mbmb.getPublicResource('assessment-tax', { columnName, columnValue });
         return { data: this.mapToBills(raw) };
     }
 
