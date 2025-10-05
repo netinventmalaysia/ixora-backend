@@ -172,12 +172,18 @@ export class MbmbController {
     @ApiResponse({ status: 200, description: '{ data: BoothBill[] }' })
     async getBoothOutstanding(@Req() req: Request, @Query() query: BoothOutstandingQueryDto) {
         this.ensureRateLimit(req, 'booth');
-        // Mapping (FE -> Upstream): account_no -> no_akaun, ic/no_kp -> no_kp
+        // New upstream generic pattern: /booth-rental?columnName=...&columnValue=...
+        // Priority mapping (FE -> Upstream column): account_no/booth_no -> no_akaun, ic/no_kp -> no_kp
         const ic = query.ic || query.no_kp;
-        const accountNo = query.account_no || query.booth_no; // booth_no legacy
-        const key = this.validateOneOf({ ic, accountNo }, ['ic', 'accountNo']);
-        const params: any = key === 'ic' ? { no_kp: ic } : { no_akaun: accountNo };
-        const raw = await this.mbmb.getPublicResource('booth/outstanding', params);
+        const accountNo = query.account_no || query.booth_no; // booth_no legacy support
+        let columnName: 'no_kp' | 'no_akaun' | undefined;
+        let columnValue: string | undefined;
+        if (ic) { columnName = 'no_kp'; columnValue = ic; }
+        else if (accountNo) { columnName = 'no_akaun'; columnValue = accountNo; }
+        if (!columnName || !columnValue) {
+            throw new BadRequestException({ error: 'BadRequest', message: 'Provide either ic or account_no' });
+        }
+        const raw = await this.mbmb.getPublicResource('booth-rental', { columnName, columnValue });
         return { data: this.mapToBills(raw) };
     }
 
