@@ -61,6 +61,8 @@ export class MbmbController {
             const isMisc = !!it?.no_akaun && !!it?.jumlah && !!it?.amaun_bil;
             const isCompound = !!it?.nokmp || !!it?.noicmilik;
             const isAssessment = !!it?.no_akaun && (!!it?.no_bil || !!it?.jumlah) && (it?.jenis === '01' || it?.cukai_sepenggal != null);
+            // Booth context (jenis '02' observed) with rental-related fields like sewa/petak/selenggara
+            const isBooth = it?.jenis === '02' && !!it?.no_akaun && (it?.sewa != null || it?.petak != null || it?.selenggara != null || it?.cukai_sepenggal != null);
 
             // id resolution
             let id = it?.id;
@@ -86,18 +88,33 @@ export class MbmbController {
             let amount: number | undefined;
             const amountCandidates = isAssessment
                 ? [it?.jumlah, it?.cukai, it?.cukai_sepenggal, it?.amount]
-                : [
-                    it?.amount,
-                    it?.jumlah, // misc/assessment total
-                    it?.amaun_bil, // misc bill amount
-                    it?.total,
-                    it?.value,
-                    it?.amnterkini,
-                    it?.amnkmp,
-                    it?.amaun,
-                ];
+                : isBooth
+                    // For booth: prefer jumlah if >0; else sewa; else cukai_sepenggal; else any non-zero maintenance related amounts.
+                    ? [
+                        it?.jumlah,
+                        it?.sewa,
+                        it?.cukai_sepenggal,
+                        it?.selenggara,
+                        it?.air,
+                        it?.denda,
+                        it?.amaun,
+                        it?.amount,
+                    ]
+                    : [
+                        it?.amount,
+                        it?.jumlah, // misc/assessment total
+                        it?.amaun_bil, // misc bill amount
+                        it?.total,
+                        it?.value,
+                        it?.amnterkini,
+                        it?.amnkmp,
+                        it?.amaun,
+                    ];
             for (const c of amountCandidates) {
-                if (c != null && c !== '') { amount = typeof c === 'number' ? c : Number(c); break; }
+                if (c != null && c !== '') {
+                    const n = typeof c === 'number' ? c : Number(c);
+                    if (!isNaN(n)) { amount = n; if (n !== 0) break; }
+                }
             }
             if (typeof amount !== 'number' || isNaN(amount)) amount = 0;
 
@@ -109,6 +126,12 @@ export class MbmbController {
             // description
             let description = it?.description || it?.desc || it?.title || it?.butirsalah;
             if (!description && isMisc) description = it?.catitan1 || it?.catitan2 || undefined;
+            if (!description && isBooth) {
+                // Build a concise booth description: month/year + optional remark
+                const period = it?.mmyyyy ? String(it.mmyyyy).trim() : undefined;
+                const note = it?.catitan1 ? String(it.catitan1).trim() : undefined;
+                description = [period, note].filter(Boolean).join(' - ') || undefined;
+            }
 
             return { id, bill_no: billNo, amount, due_date: dueDate, description };
         });
