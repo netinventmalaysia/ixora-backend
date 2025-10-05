@@ -60,12 +60,13 @@ export class MbmbController {
             // Identify context by presence of distinctive fields
             const isMisc = !!it?.no_akaun && !!it?.jumlah && !!it?.amaun_bil;
             const isCompound = !!it?.nokmp || !!it?.noicmilik;
-            const isAssessment = !!it?.no_akaun && !!it?.no_bil && !!it?.jumlah && it?.jenis === '01';
+            const isAssessment = !!it?.no_akaun && (!!it?.no_bil || !!it?.jumlah) && (it?.jenis === '01' || it?.cukai_sepenggal != null);
 
             // id resolution
             let id = it?.id;
             if (!id) {
-                if (isMisc) id = it?.no_akaun || it?.no_rujukan;
+                if (isAssessment) id = it?.no_akaun || it?.no_bil;
+                else if (isMisc) id = it?.no_akaun || it?.no_rujukan;
                 else if (isCompound) id = it?.nokmp || it?.noicmilik;
                 else id = it?.bill_no || it?.no || it?.reference || it?.ref || it?.seq;
             }
@@ -74,7 +75,8 @@ export class MbmbController {
             // bill number resolution
             let billNo = it?.bill_no || it?.billNo;
             if (!billNo) {
-                if (isMisc) billNo = it?.no_rujukan || it?.no_akaun;
+                if (isAssessment) billNo = it?.no_bil || it?.no_akaun;
+                else if (isMisc) billNo = it?.no_rujukan || it?.no_akaun;
                 else if (isCompound) billNo = it?.nokmp;
                 else billNo = it?.no || it?.reference || it?.ref || it?.seq;
             }
