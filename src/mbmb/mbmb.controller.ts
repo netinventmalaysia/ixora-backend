@@ -122,14 +122,20 @@ export class MbmbController {
     @ApiResponse({ status: 200, description: '{ data: AssessmentBill[] }' })
     async getAssessmentOutstanding(@Req() req: Request, @Query() query: AssessmentOutstandingQueryDto) {
         this.ensureRateLimit(req, 'assessment');
-        // Mapping (FE -> Upstream): account_no -> no_akaun, bill_no -> no_bil, ic/no_kp -> no_kp
+        // Upstream pattern (similar to compound/misc): /assessment?columnName=...&columnValue=...
+        // Priority: bill_no > account_no/assessment_no > ic
         const ic = query.ic || query.no_kp;
-        const accountNo = query.account_no || query.assessment_no; // support legacy
+        const accountNo = query.account_no || query.assessment_no;
         const billNo = query.bill_no;
-        const key = this.validateOneOf({ ic, accountNo, billNo }, ['ic', 'accountNo']);
-        const params: any = key === 'ic' ? { no_kp: ic } : { no_akaun: accountNo };
-        if (billNo) params.no_bil = billNo;
-        const raw = await this.mbmb.getPublicResource('assessment/outstanding', params);
+        let columnName: 'no_bil' | 'no_akaun' | 'no_kp' | undefined;
+        let columnValue: string | undefined;
+        if (billNo) { columnName = 'no_bil'; columnValue = billNo; }
+        else if (accountNo) { columnName = 'no_akaun'; columnValue = accountNo; }
+        else if (ic) { columnName = 'no_kp'; columnValue = ic; }
+        if (!columnName || !columnValue) {
+            throw new BadRequestException({ error: 'BadRequest', message: 'Provide either ic or account_no' });
+        }
+        const raw = await this.mbmb.getPublicResource('assessment', { columnName, columnValue });
         return { data: this.mapToBills(raw) };
     }
 
