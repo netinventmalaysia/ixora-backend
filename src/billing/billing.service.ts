@@ -14,6 +14,7 @@ import { CreateBillingDto } from './dto/create-billing.dto';
 import { MbmbCallbackDto } from './dto/mbmb-callback.dto';
 import { Payment } from './payment.entity';
 import { PaymentSubmitDto } from './dto/payment-submit.dto';
+import { CheckoutOutstandingDto } from './dto/checkout-outstanding.dto';
 
 @Injectable()
 export class BillingService {
@@ -218,5 +219,52 @@ export class BillingService {
     console.log('[BillingService] submitPayment -> MBMB response:', res);
     // Expected: { status: true, url: 'https://...' }
     return { status: !!res?.status, url: res?.url };
+  }
+
+  // Checkout multiple outstanding bills (not yet persisted) -> create Billing + items then submit payment
+  async checkoutOutstanding(dto: CheckoutOutstandingDto): Promise<{ reference: string; url?: string }> {
+    // Reject duplicate reference
+    const existing = await this.billingRepo.findOne({ where: { reference: dto.reference } });
+    if (existing) return { reference: dto.reference, url: undefined };
+
+    // Optional business lookup
+    let businessId = dto.businessId || 0;
+    if (dto.businessId) {
+      const biz = await this.businessRepo.findOne({ where: { id: dto.businessId } });
+      if (!biz) throw new NotFoundException('Business not found');
+      businessId = biz.id;
+    }
+    const total = dto.bills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+    const billing = this.billingRepo.create({
+      reference: dto.reference,
+      businessId,
+      userId: dto.userId,
+      status: BillingStatus.CREATED,
+      totalAmount: total,
+      currency: 'MYR',
+      items: dto.bills.map((b, idx) => this.billingItemRepo.create({
+        order_no: `${dto.reference}-${idx + 1}`,
+        jenis: b.item_type,
+        no_akaun: b.account_no,
+        amaun: b.amount,
+        status: BillingStatus.CREATED,
+      })),
+    });
+    await this.billingRepo.save(billing);
+    // Submit payment to obtain redirect URL
+    const paymentRes = await this.submitPayment({
+      orderId: dto.reference,
+      amount: total,
+      billName: dto.billName,
+      billEmail: dto.billEmail,
+      billMobile: dto.billMobile,
+      billDesc: dto.billDesc,
+      country: 'MY',
+    });
+    if (paymentRes?.url) {
+      billing.mbmbSubmittedAt = new Date();
+      await this.billingRepo.save(billing);
+    }
+    return { reference: dto.reference, url: paymentRes.url };
   }
 }
