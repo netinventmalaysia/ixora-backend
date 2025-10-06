@@ -7,6 +7,7 @@ import { CreateBillingDto } from './dto/create-billing.dto';
 // Razer callback removed in favor of MBMB callback
 import { MbmbCallbackDto } from './dto/mbmb-callback.dto';
 import { PaymentSubmitDto } from './dto/payment-submit.dto';
+import { CheckoutOutstandingDto } from './dto/checkout-outstanding.dto';
 
 @ApiTags('Billings')
 @ApiBearerAuth('bearer')
@@ -77,6 +78,19 @@ export class BillingController {
       console.error('[BillingController] submitPayment error:', errData);
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to create payment' }, HttpStatus.BAD_GATEWAY);
+    }
+  }
+
+  // Aggregate outstanding bills and initiate payment (multi-bill checkout)
+  @Post('checkout')
+  async checkout(@Body() body: CheckoutOutstandingDto) {
+    try {
+      const result = await this.billing.checkoutOutstanding(body);
+      return { data: result };
+    } catch (err: any) {
+      const errData = err?.response?.data ?? err?.message ?? err;
+      console.error('[BillingController] checkout error:', errData);
+      throw new HttpException({ error: err?.message || 'Failed to checkout bills' }, HttpStatus.BAD_REQUEST);
     }
   }
 }
