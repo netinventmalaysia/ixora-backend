@@ -247,7 +247,7 @@ export class BillingService {
     const total = dto.bills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
     const billing = this.billingRepo.create({
       reference: dto.reference,
-  businessId: businessId ?? null,
+      businessId: businessId ?? null,
       userId: dto.userId,
       status: BillingStatus.CREATED,
       totalAmount: total,
