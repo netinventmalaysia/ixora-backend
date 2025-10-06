@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BillingService } from './billing.service';
 import { InvoiceDto } from './dto/invoice.dto';
@@ -26,6 +26,18 @@ export class BillingController {
     } catch (err: any) {
       if (err instanceof HttpException) throw err;
       throw new HttpException({ error: err?.message || 'Failed to fetch billings' }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // GET /billings/:reference -> poll billing/session status
+  @Get(':reference')
+  async getByReference(@Param('reference') reference: string) {
+    try {
+      const data = await this.billing.findByReference(reference);
+      return { data };
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException({ error: err?.message || 'Failed to fetch billing' }, HttpStatus.NOT_FOUND);
     }
   }
 

@@ -12,12 +12,12 @@ export class Billing {
     @Column({ unique: true })
     reference: string; // IXORA reference grouping items
 
-    @Column()
-    businessId: number;
+    @Column({ nullable: true })
+    businessId?: number | null;
 
-    @ManyToOne(() => Business)
+    @ManyToOne(() => Business, { nullable: true })
     @JoinColumn({ name: 'businessId' })
-    business: Business;
+    business?: Business | null;
 
     @Column({ nullable: true })
     userId?: number;

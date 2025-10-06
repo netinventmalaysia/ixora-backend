@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InvoiceDto } from './dto/invoice.dto';
@@ -227,17 +227,27 @@ export class BillingService {
     const existing = await this.billingRepo.findOne({ where: { reference: dto.reference } });
     if (existing) return { reference: dto.reference, url: undefined };
 
-    // Optional business lookup
-    let businessId = dto.businessId || 0;
+    // businessId optional: if provided validate, otherwise store null
+    let businessId: number | null = null;
     if (dto.businessId) {
       const biz = await this.businessRepo.findOne({ where: { id: dto.businessId } });
       if (!biz) throw new NotFoundException('Business not found');
       businessId = biz.id;
     }
+
+    // Validate item types (jenis) to prevent sending unknown codes like '99'
+    const allowedJenis = new Set(['01', '02', '04', '05']);
+    const invalid = dto.bills
+      .map(b => b.item_type)
+      .filter(j => !allowedJenis.has(j));
+    if (invalid.length) {
+      const uniq = Array.from(new Set(invalid));
+      throw new BadRequestException({ error: 'InvalidItemType', message: `Unsupported item_type code(s): ${uniq.join(', ')}. Allowed: ${Array.from(allowedJenis).join(', ')}` });
+    }
     const total = dto.bills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
     const billing = this.billingRepo.create({
       reference: dto.reference,
-      businessId,
+  businessId: businessId ?? null,
       userId: dto.userId,
       status: BillingStatus.CREATED,
       totalAmount: total,
@@ -266,5 +276,30 @@ export class BillingService {
       await this.billingRepo.save(billing);
     }
     return { reference: dto.reference, url: paymentRes.url };
+  }
+
+  async findByReference(reference: string): Promise<any> {
+    const billing = await this.billingRepo.findOne({ where: { reference }, relations: ['items'] });
+    if (!billing) throw new NotFoundException('Billing not found');
+    return {
+      reference: billing.reference,
+      status: billing.status,
+      totalAmount: billing.totalAmount,
+      currency: billing.currency,
+      paidAmount: billing.paidAmount ?? null,
+      paidAt: billing.paidAt ?? null,
+      gatewayStatus: billing.paymentGatewayStatus ?? null,
+      items: (billing.items || []).map(it => ({
+        id: it.id,
+        order_no: it.order_no,
+        item_type: it.jenis,
+        account_no: it.no_akaun,
+        amount: Number(it.amaun),
+        status: it.status,
+      })),
+      submittedAt: billing.mbmbSubmittedAt ?? null,
+      createdAt: billing.createdAt,
+      updatedAt: billing.updatedAt,
+    };
   }
 }
