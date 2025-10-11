@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Post, Query, Param } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BillingService } from './billing.service';
 import { InvoiceDto } from './dto/invoice.dto';
 import { InsertOnlineBillDto } from './dto/insert-online-bill.dto';
@@ -77,6 +77,7 @@ export class BillingController {
 
   // Initiate payment via MBMB; returns URL for frontend redirection
   @Post('payment/submit')
+  @ApiOperation({ summary: 'Submit payment to MBMB (public)', description: 'No auth, CSRF-exempt', security: [] })
   async submitPayment(@Body() body: PaymentSubmitDto) {
     try {
       // Debug: incoming request body

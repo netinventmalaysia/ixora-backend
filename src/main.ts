@@ -43,6 +43,8 @@ async function bootstrap() {
     'GET  /hooks/ixora-backend',
     // External callbacks shouldn't require CSRF
     'POST /billings/callback/mbmb',
+    // Allow payment submit to be called without CSRF (no auth)
+    'POST /billings/payment/submit',
   ]);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
