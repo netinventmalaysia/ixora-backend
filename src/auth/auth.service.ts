@@ -116,7 +116,20 @@ export class AuthService {
         if (!user) throw new UnauthorizedException('Invalid verification token');
         const now = new Date();
         if (!user.verificationTokenExpires || user.verificationTokenExpires < now) {
-            throw new UnauthorizedException('Verification token expired');
+            // Auto-resend a new verification email if expired
+            try {
+                const newToken = uuidv4();
+                const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+                user.verificationToken = newToken;
+                user.verificationTokenExpires = newExpiry;
+                await this.userService.save(user);
+                await this.mailService.sendVerificationEmail(user.email, newToken);
+            } catch (e) {
+                // Non-fatal for API response; still report expiration
+                // eslint-disable-next-line no-console
+                console.error('[verifyEmail] Failed to resend verification email:', e);
+            }
+            throw new UnauthorizedException('Verification token expired. A new verification email has been sent.');
         }
         user.isEmailVerified = true;
         user.isAccountVerified = true;
