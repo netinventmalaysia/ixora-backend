@@ -116,4 +116,13 @@ export class AuthController {
         const result = await this.authService.verifyEmail(token);
         return { message: 'Email verified successfully', userId: result.id, email: result.email };
     }
+
+    @Post('verify-email/confirm')
+    @ApiOperation({ summary: 'Verify email by token (POST alias)' })
+    async verifyEmailConfirm(@Body() body: { token?: string }) {
+        const token = body?.token || '';
+        if (!token) throw new HttpException({ error: 'Missing token' }, HttpStatus.BAD_REQUEST);
+        const result = await this.authService.verifyEmail(token);
+        return { message: 'Email verified successfully', userId: result.id, email: result.email };
+    }
 }
