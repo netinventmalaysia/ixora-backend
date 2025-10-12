@@ -118,6 +118,7 @@ export class TeamService {
         if (!token) return { statusCode: 400, error: 'missing_token' };
         const member = await this.teamRepo.findOne({ where: { token } });
         if (!member) return { statusCode: 404, error: 'not_found' };
+        // Optional: token expiry check for safety when called from public wrapper
         const business = await this.businessRepo.findOne({ where: { id: member.businessId } });
         if (!business) return { statusCode: 404, error: 'business_not_found' };
         if (business.userId !== ownerId) {
@@ -128,8 +129,90 @@ export class TeamService {
         member.token = '';
         member.tokenExpires = undefined as any;
         await this.teamRepo.save(member);
-
+        // Notify requester
+        const requester = await this.userRepo.findOne({ where: { id: member.userId } });
+        if (requester) {
+            await this.mailService.sendDuplicateRequestApprovedEmail(requester.email, { businessName: business.companyName });
+        }
         return { success: true, membership: { businessId: member.businessId, userId: member.userId, role: member.role } };
+    }
+
+    async declineDuplicateRequest(token: string, ownerId: number) {
+        if (!token) return { statusCode: 400, error: 'missing_token' };
+        const member = await this.teamRepo.findOne({ where: { token } });
+        if (!member) return { statusCode: 404, error: 'not_found' };
+        // Optional: token expiry check for safety when called from public wrapper
+        const business = await this.businessRepo.findOne({ where: { id: member.businessId } });
+        if (!business) return { statusCode: 404, error: 'business_not_found' };
+        if (business.userId !== ownerId) {
+            return { statusCode: 403, error: 'forbidden' };
+        }
+        member.status = TeamMemberStatus.DECLINED;
+        member.token = '';
+        member.tokenExpires = undefined as any;
+        await this.teamRepo.save(member);
+        // Notify requester
+        const requester = await this.userRepo.findOne({ where: { id: member.userId } });
+        if (requester) {
+            await this.mailService.sendDuplicateRequestDeclinedEmail(requester.email, { businessName: business.companyName });
+        }
+        return { success: true, declined: true };
+    }
+
+    // Public wrappers to be used by email GET links
+    async approveDuplicateRequestPublic(token: string): Promise<{ success: boolean; error?: string }> {
+        if (!token) return { success: false, error: 'missing_token' };
+        const member = await this.teamRepo.findOne({ where: { token } });
+        if (!member) return { success: false, error: 'not_found' };
+        if (member.tokenExpires && member.tokenExpires < new Date()) return { success: false, error: 'expired' };
+        const business = await this.businessRepo.findOne({ where: { id: member.businessId } });
+        if (!business) return { success: false, error: 'business_not_found' };
+        const res = await this.approveDuplicateRequest(token, business.userId);
+        if ((res as any).statusCode) {
+            return { success: false, error: (res as any).error || 'error' };
+        }
+        return { success: true };
+    }
+
+    async declineDuplicateRequestPublic(token: string): Promise<{ success: boolean; error?: string }> {
+        if (!token) return { success: false, error: 'missing_token' };
+        const member = await this.teamRepo.findOne({ where: { token } });
+        if (!member) return { success: false, error: 'not_found' };
+        if (member.tokenExpires && member.tokenExpires < new Date()) return { success: false, error: 'expired' };
+        const business = await this.businessRepo.findOne({ where: { id: member.businessId } });
+        if (!business) return { success: false, error: 'business_not_found' };
+        const res = await this.declineDuplicateRequest(token, business.userId);
+        if ((res as any).statusCode) {
+            return { success: false, error: (res as any).error || 'error' };
+        }
+        return { success: true };
+    }
+
+    async resendDuplicateRequest(businessId: number, requesterEmail: string, ownerId: number) {
+        const business = await this.businessRepo.findOne({ where: { id: businessId } });
+        if (!business) return { statusCode: 404, error: 'business_not_found' };
+        if (business.userId !== ownerId) return { statusCode: 403, error: 'forbidden' };
+        let member = await this.teamRepo.findOne({ where: { businessId, email: requesterEmail } });
+        if (!member) return { statusCode: 404, error: 'request_not_found' };
+        // Refresh token/expiry
+        member.token = uuidv4();
+        member.tokenExpires = addMinutes(new Date(), 60);
+        member.status = TeamMemberStatus.PENDING;
+        await this.teamRepo.save(member);
+        const backend = (process.env.BACKEND_URL || '').replace(/\/$/, '');
+        const approveUrl = `${backend || ''}/business/owner/approve-duplicate?token=${member.token}`;
+        const declineUrl = `${backend || ''}/business/owner/decline-duplicate?token=${member.token}`;
+        const owner = await this.userRepo.findOne({ where: { id: ownerId } });
+        if (owner) {
+            await this.mailService.sendDuplicateRegistrationAttemptEmail(owner.email, {
+                businessName: business.companyName,
+                registrationNumber: business.registrationNumber,
+                requesterEmail,
+                approveUrl,
+                declineUrl,
+            });
+        }
+        return { success: true, resent: true };
     }
     async updateMemberRole(memberId: number, role: string) {
         const member = await this.teamRepo.findOne({ where: { id: memberId } });

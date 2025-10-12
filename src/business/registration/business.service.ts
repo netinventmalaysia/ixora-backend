@@ -63,13 +63,15 @@ export class BusinessService {
             }
             await this.teamRepo.save(member);
 
-            const frontend = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
-            const approveUrl = `${frontend}/business-owner-approval?token=${member.token}`;
+            const backend = (process.env.BACKEND_URL || '').replace(/\/$/, '');
+            const approveUrl = `${backend || ''}/business/owner/approve-duplicate?token=${member.token}`;
+            const declineUrl = `${backend || ''}/business/owner/decline-duplicate?token=${member.token}`;
             await this.mailService.sendDuplicateRegistrationAttemptEmail(owner.email, {
                 businessName: existing.companyName,
                 registrationNumber: existing.registrationNumber,
                 requesterEmail: requester.email,
                 approveUrl,
+                declineUrl,
             });
             throw new BadRequestException('Registration number already exists. Owner has been notified to approve adding you as staff.');
         }

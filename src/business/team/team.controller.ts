@@ -7,6 +7,7 @@ import {
     Param,
     Body,
     Req,
+    Res,
     UseGuards,
     NotFoundException,
     Logger,
@@ -17,6 +18,8 @@ import { TeamService } from './team.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Public } from 'src/common/decorators/public.decorator';
+import { Response } from 'express';
 
 @ApiTags('Team')
 @ApiBearerAuth('bearer')
@@ -89,5 +92,46 @@ export class TeamController {
             throw new UnauthorizedException({ error: 'unauthenticated' });
         }
         return this.teamService.approveDuplicateRequest(token, ownerId);
+    }
+
+    @Post('/owner/decline-duplicate')
+    async declineDuplicate(@Body('token') token: string, @Req() req: any) {
+        const ownerId = req.user?.userId ?? req.user?.sub ?? req.user?.id ?? null;
+        if (!ownerId) {
+            throw new UnauthorizedException({ error: 'unauthenticated' });
+        }
+        return this.teamService.declineDuplicateRequest(token, ownerId);
+    }
+
+    @Post('/owner/resend-duplicate')
+    async resendDuplicate(@Body() body: { businessId: number; requesterEmail: string }, @Req() req: any) {
+        const ownerId = req.user?.userId ?? req.user?.sub ?? req.user?.id ?? null;
+        if (!ownerId) {
+            throw new UnauthorizedException({ error: 'unauthenticated' });
+        }
+        return this.teamService.resendDuplicateRequest(body.businessId, body.requesterEmail, ownerId);
+    }
+
+    // Public GET endpoints for email links: perform action then redirect to frontend confirmation page
+    @Public()
+    @Get('/owner/approve-duplicate')
+    async approveDuplicateGet(@Req() req: any, @Res() res: Response) {
+        const token = req.query.token as string;
+        // Owner identity cannot be inferred from JWT (public), so we infer by business owner from token
+        // TeamService will validate ownership from token.business.userId
+        const result = await this.teamService.approveDuplicateRequestPublic(token);
+        const frontend = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+        const redirectUrl = `${frontend || ''}/business-owner-approval-result?status=${result.success ? 'approved' : 'error'}&code=${encodeURIComponent(result.error || '')}`;
+        return res.redirect(302, redirectUrl);
+    }
+
+    @Public()
+    @Get('/owner/decline-duplicate')
+    async declineDuplicateGet(@Req() req: any, @Res() res: Response) {
+        const token = req.query.token as string;
+        const result = await this.teamService.declineDuplicateRequestPublic(token);
+        const frontend = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+        const redirectUrl = `${frontend || ''}/business-owner-approval-result?status=${result.success ? 'declined' : 'error'}&code=${encodeURIComponent(result.error || '')}`;
+        return res.redirect(302, redirectUrl);
     }
 }

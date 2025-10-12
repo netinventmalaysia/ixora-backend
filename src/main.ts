@@ -49,6 +49,11 @@ async function bootstrap() {
     'POST /billings/callback/mbmb',
     // Allow payment submit to be called without CSRF (no auth)
     'POST /billings/payment/submit',
+    // Public owner approval links
+    'GET /business/owner/approve-duplicate',
+    'GET /business/owner/decline-duplicate',
+    'OPTIONS /business/owner/approve-duplicate',
+    'OPTIONS /business/owner/decline-duplicate',
   ]);
 
   app.use((req: Request, res: Response, next: NextFunction) => {

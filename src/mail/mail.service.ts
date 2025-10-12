@@ -84,9 +84,9 @@ export class MailService {
 
     async sendDuplicateRegistrationAttemptEmail(
         ownerEmail: string,
-        context: { businessName: string; registrationNumber: string; requesterEmail: string; approveUrl: string }
+        context: { businessName: string; registrationNumber: string; requesterEmail: string; approveUrl: string; declineUrl?: string }
     ) {
-        const { businessName, registrationNumber, requesterEmail, approveUrl } = context;
+        const { businessName, registrationNumber, requesterEmail, approveUrl, declineUrl } = context;
         return this.mailerService.sendMail({
             to: ownerEmail,
             subject: 'Ixora: Duplicate Business Registration Attempt',
@@ -102,9 +102,43 @@ export class MailService {
                     If you approve, the requester will be added as a staff member for this business.
                 </p>
                 <p>
-                    <a href="${approveUrl}" target="_blank" rel="noopener noreferrer">Approve Request</a>
+                    <a href="${approveUrl}" target="_blank" rel="noopener noreferrer" style="margin-right:12px;">Approve Request</a>
+                    ${declineUrl ? `<a href="${declineUrl}" target="_blank" rel="noopener noreferrer" style="color:#b00020">Decline</a>` : ''}
                 </p>
                 <p>If you did not initiate this, you can ignore this email.</p>
+                <p>Thank you,<br/>MBMB Team</p>
+            `,
+        });
+    }
+
+    async sendDuplicateRequestApprovedEmail(
+        requesterEmail: string,
+        context: { businessName: string }
+    ) {
+        const { businessName } = context;
+        return this.mailerService.sendMail({
+            to: requesterEmail,
+            subject: 'Ixora: Access Approved',
+            html: `
+                <h3>Congratulations</h3>
+                <p>Your request to join <strong>${businessName}</strong> has been approved. You now have staff access.</p>
+                <p>Thank you,<br/>MBMB Team</p>
+            `,
+        });
+    }
+
+    async sendDuplicateRequestDeclinedEmail(
+        requesterEmail: string,
+        context: { businessName: string }
+    ) {
+        const { businessName } = context;
+        return this.mailerService.sendMail({
+            to: requesterEmail,
+            subject: 'Ixora: Access Declined',
+            html: `
+                <h3>Request Declined</h3>
+                <p>Your request to join <strong>${businessName}</strong> was declined by the owner.</p>
+                <p>If you believe this is an error, please contact the MBMB support team.</p>
                 <p>Thank you,<br/>MBMB Team</p>
             `,
         });
