@@ -40,7 +40,7 @@ async function bootstrap() {
     'GET  /auth/verify-reset-token',
     'POST /auth/reset-password',
     'GET /auth/verify-email/validate',
-  'POST /auth/verify-email/confirm',
+    'POST /auth/verify-email/confirm',
     'OPTIONS /auth/verify-email/validate',
     'POST /users',
     'POST /hooks/ixora-backend',
