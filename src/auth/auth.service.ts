@@ -110,4 +110,19 @@ export class AuthService {
 
         return { message: 'Password has been successfully reset.' };
     }
+
+    async verifyEmail(token: string): Promise<User> {
+        const user = await this.userService.findByVerificationToken(token);
+        if (!user) throw new UnauthorizedException('Invalid verification token');
+        const now = new Date();
+        if (!user.verificationTokenExpires || user.verificationTokenExpires < now) {
+            throw new UnauthorizedException('Verification token expired');
+        }
+        user.isEmailVerified = true;
+        user.isAccountVerified = true;
+        user.verificationToken = null;
+        user.verificationTokenExpires = null as any;
+        await this.userService.save(user);
+        return user;
+    }
 }

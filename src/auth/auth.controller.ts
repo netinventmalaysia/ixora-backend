@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Req, Res, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, Res, Param, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -106,5 +106,14 @@ export class AuthController {
     @ApiOperation({ summary: 'Reset password' })
     async resetPassword(@Body() body: ResetPasswordDto) {
         return this.authService.resetPassword(body.token, body.newPassword);
+    }
+
+    @Get('verify-email/validate')
+    @ApiOperation({ summary: 'Verify email by token' })
+    @ApiResponse({ status: 200, description: 'Email verified successfully' })
+    async verifyEmail(@Query('token') token: string) {
+        if (!token) throw new HttpException({ error: 'Missing token' }, HttpStatus.BAD_REQUEST);
+        const result = await this.authService.verifyEmail(token);
+        return { message: 'Email verified successfully', userId: result.id, email: result.email };
     }
 }

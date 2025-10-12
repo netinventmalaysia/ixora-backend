@@ -106,10 +106,10 @@ export class User {
     resetTokenExpiry: Date | null;
 
     @Column({ nullable: true })
-    verificationToken: string;
+    verificationToken: string | null;
 
     @Column({ type: 'datetime', nullable: true })
-    verificationTokenExpires: Date;
+    verificationTokenExpires: Date | null;
 
     @BeforeInsert()
     @BeforeUpdate()

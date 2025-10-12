@@ -63,6 +63,10 @@ export class UserService {
         return this.userRepository.findOne({ where: { resetToken: token } });
     }
 
+    async findByVerificationToken(token: string): Promise<User | null> {
+        return this.userRepository.findOne({ where: { verificationToken: token } });
+    }
+
     async findById(id: number): Promise<User> {
         const user = await this.userRepository.findOneBy({ id });
         if (!user) throw new NotFoundException('User not found');
