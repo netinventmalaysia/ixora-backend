@@ -306,4 +306,31 @@ export class BillingService {
       updatedAt: billing.updatedAt,
     };
   }
+
+  // Find billing items by external bill number (bill_no)
+  async findItemsByBillNo(billNo: string): Promise<any[]> {
+    const value = (billNo || '').trim();
+    if (!value) throw new BadRequestException('bill_no is required');
+    if (value.length > 128) throw new BadRequestException('bill_no too long');
+
+    const items = await this.billingItemRepo.find({
+      where: { bill_no: value },
+      relations: ['billing'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return items.map((it) => ({
+      id: it.id,
+      reference: it.billing?.reference ?? null,
+      billing_status: it.billing?.status ?? null,
+      order_no: it.order_no,
+      item_type: it.jenis,
+      account_no: it.no_akaun,
+      bill_no: it.bill_no ?? null,
+      amount: Number(it.amaun),
+      status: it.status,
+      createdAt: it.createdAt,
+      updatedAt: it.updatedAt,
+    }));
+  }
 }

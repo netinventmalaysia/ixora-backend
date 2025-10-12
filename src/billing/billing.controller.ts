@@ -41,6 +41,19 @@ export class BillingController {
     }
   }
 
+  // GET /billings/items/by-bill-no?bill_no=XYZ -> search items by external bill number
+  @Get('items/by-bill-no')
+  @ApiOperation({ summary: 'Find billing items by bill_no' })
+  async findItemsByBillNo(@Query('bill_no') bill_no?: string) {
+    try {
+      const data = await this.billing.findItemsByBillNo(bill_no || '');
+      return { data };
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException({ error: err?.message || 'Failed to search items' }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   // POST /billings/insert -> forwards to MBMB Insert Online Bill
   @Post('insert')
   async insertOnlineBill(@Body() body: InsertOnlineBillDto) {
