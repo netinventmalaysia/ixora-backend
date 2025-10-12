@@ -31,6 +31,26 @@ export class AuthService {
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) throw new UnauthorizedException('Invalid credentials');
 
+        // Block login if email is not verified; (re)send verification email
+        if (!user.isEmailVerified) {
+            try {
+                const now = new Date();
+                let token = user.verificationToken || '';
+                const expired = !user.verificationTokenExpires || user.verificationTokenExpires < now;
+                if (!token || expired) {
+                    token = uuidv4();
+                    user.verificationToken = token;
+                    user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+                    await this.userService.save(user);
+                }
+                await this.mailService.sendVerificationEmail(user.email, token);
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('[login] Failed to (re)send verification email:', e);
+            }
+            throw new UnauthorizedException('Email not verified. A new verification email has been sent.');
+        }
+
         const payload = { sub: user.id, email: user.email, username: user.username, role: user.role };
         return {
             accessToken: this.jwtService.sign(payload),
