@@ -23,6 +23,7 @@ async function bootstrap() {
       'http://localhost:3001'
     ],
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
   });
 
@@ -38,6 +39,8 @@ async function bootstrap() {
     'POST /auth/forgot-password',
     'GET  /auth/verify-reset-token',
     'POST /auth/reset-password',
+    'GET /auth/verify-email/validate',
+    'OPTIONS /auth/verify-email/validate',
     'POST /users',
     'POST /hooks/ixora-backend',
     'GET  /hooks/ixora-backend',
