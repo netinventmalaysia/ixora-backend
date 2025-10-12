@@ -112,6 +112,25 @@ export class TeamService {
 
         return { success: true, alreadyAccepted: false, membership: { businessId: member.businessId, userId, role: member.role, joinedAt: member.createdAt } };
     }
+
+    // Owner approval for duplicate registration requests
+    async approveDuplicateRequest(token: string, ownerId: number) {
+        if (!token) return { statusCode: 400, error: 'missing_token' };
+        const member = await this.teamRepo.findOne({ where: { token } });
+        if (!member) return { statusCode: 404, error: 'not_found' };
+        const business = await this.businessRepo.findOne({ where: { id: member.businessId } });
+        if (!business) return { statusCode: 404, error: 'business_not_found' };
+        if (business.userId !== ownerId) {
+            return { statusCode: 403, error: 'forbidden' };
+        }
+        // Activate requester as staff; keep existing userId (requester) if set
+        member.status = TeamMemberStatus.ACTIVE;
+        member.token = '';
+        member.tokenExpires = undefined as any;
+        await this.teamRepo.save(member);
+
+        return { success: true, membership: { businessId: member.businessId, userId: member.userId, role: member.role } };
+    }
     async updateMemberRole(memberId: number, role: string) {
         const member = await this.teamRepo.findOne({ where: { id: memberId } });
         if (!member) throw new NotFoundException('Team member not found');

@@ -81,4 +81,32 @@ export class MailService {
             `,
         });
     }
+
+    async sendDuplicateRegistrationAttemptEmail(
+        ownerEmail: string,
+        context: { businessName: string; registrationNumber: string; requesterEmail: string; approveUrl: string }
+    ) {
+        const { businessName, registrationNumber, requesterEmail, approveUrl } = context;
+        return this.mailerService.sendMail({
+            to: ownerEmail,
+            subject: 'Ixora: Duplicate Business Registration Attempt',
+            html: `
+                <h3>Owner Action Required</h3>
+                <p>Someone attempted to add a business that is already registered by you.</p>
+                <p>
+                    <strong>Business:</strong> ${businessName}<br/>
+                    <strong>Registration No.:</strong> ${registrationNumber}<br/>
+                    <strong>Requester Email:</strong> ${requesterEmail}
+                </p>
+                <p>
+                    If you approve, the requester will be added as a staff member for this business.
+                </p>
+                <p>
+                    <a href="${approveUrl}" target="_blank" rel="noopener noreferrer">Approve Request</a>
+                </p>
+                <p>If you did not initiate this, you can ignore this email.</p>
+                <p>Thank you,<br/>MBMB Team</p>
+            `,
+        });
+    }
 }

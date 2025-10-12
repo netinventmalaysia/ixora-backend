@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Business } from './business.entity';
 import { Repository } from 'typeorm';
@@ -6,6 +6,11 @@ import { CreateBusinessDto } from './dto/create-business.dto';
 import { mapBusinessToListItem } from './business.mapper';
 import { UploadsEntity } from '../../uploads/uploads.entity';
 import { VerificationService } from '../../verification/verification.service';
+import { TeamMember, TeamMemberStatus } from '../team/team-member.entity';
+import { MailService } from 'src/mail/mail.service';
+import { User } from 'src/users/user.entity';
+import { v4 as uuidv4 } from 'uuid';
+import { addMinutes } from 'date-fns';
 
 @Injectable()
 export class BusinessService {
@@ -15,13 +20,58 @@ export class BusinessService {
         @InjectRepository(UploadsEntity)
         private uploadsRepo: Repository<UploadsEntity>,
         private readonly verificationService: VerificationService,
+        @InjectRepository(TeamMember)
+        private teamRepo: Repository<TeamMember>,
+        @InjectRepository(User)
+        private userRepo: Repository<User>,
+        private mailService: MailService,
     ) { }
 
     async create(data: CreateBusinessDto): Promise<Business> {
         // Guard against duplicate registration numbers
         const existing = await this.businessRepo.findOne({ where: { registrationNumber: data.registrationNumber } });
         if (existing) {
-            throw new BadRequestException('Registration number already exists');
+            // If duplicate, notify the existing owner and create a pending team membership for the requester
+            if (!data.userId) {
+                throw new BadRequestException('Registration number already exists');
+            }
+            const owner = await this.userRepo.findOne({ where: { id: existing.userId } });
+            const requester = await this.userRepo.findOne({ where: { id: data.userId } });
+            if (!owner || !requester) {
+                throw new BadRequestException('Registration number already exists');
+            }
+            // upsert pending team member for requester email
+            let member = await this.teamRepo.findOne({ where: { businessId: existing.id, email: requester.email } });
+            if (!member) {
+                member = this.teamRepo.create({
+                    businessId: existing.id,
+                    email: requester.email,
+                    userId: requester.id,
+                    invitedBy: owner.id,
+                    role: 'staff',
+                    status: TeamMemberStatus.PENDING,
+                    token: uuidv4(),
+                    tokenExpires: addMinutes(new Date(), 60), // 1 hour for owner approval
+                });
+            } else {
+                // refresh token/expiry if already exists but pending
+                if (member.status !== TeamMemberStatus.ACTIVE) {
+                    member.token = uuidv4();
+                    member.tokenExpires = addMinutes(new Date(), 60);
+                    member.role = 'staff';
+                }
+            }
+            await this.teamRepo.save(member);
+
+            const frontend = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+            const approveUrl = `${frontend}/business-owner-approval?token=${member.token}`;
+            await this.mailService.sendDuplicateRegistrationAttemptEmail(owner.email, {
+                businessName: existing.companyName,
+                registrationNumber: existing.registrationNumber,
+                requesterEmail: requester.email,
+                approveUrl,
+            });
+            throw new BadRequestException('Registration number already exists. Owner has been notified to approve adding you as staff.');
         }
         const business = await this.businessRepo.save(this.businessRepo.create(data));
 

@@ -81,4 +81,13 @@ export class TeamController {
 
         return this.teamService.acceptInvite(token, userId);
     }
+
+    @Post('/owner/approve-duplicate')
+    async approveDuplicate(@Body('token') token: string, @Req() req: any) {
+        const ownerId = req.user?.userId ?? req.user?.sub ?? req.user?.id ?? null;
+        if (!ownerId) {
+            throw new UnauthorizedException({ error: 'unauthenticated' });
+        }
+        return this.teamService.approveDuplicateRequest(token, ownerId);
+    }
 }
