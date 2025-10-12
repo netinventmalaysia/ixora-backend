@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { MailService } from 'src/mail/mail.service';
@@ -43,6 +43,7 @@ export class UserService {
                 isActive: true,
                 isAccountVerified: false,
                 isEmailVerified: false,
+                role: createUserDto.role ?? UserRole.PERSONAL,
                 verificationToken,
                 verificationTokenExpires,
             } as DeepPartial<User>,

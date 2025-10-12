@@ -5,8 +5,8 @@ export class UserResponseDto {
     @ApiProperty()
     id: number;
 
-    @ApiProperty()
-    username: string;
+    @ApiPropertyOptional()
+    username?: string;
 
     @ApiProperty()
     email: string;
@@ -14,8 +14,8 @@ export class UserResponseDto {
     @ApiProperty()
     firstName: string;
 
-    @ApiProperty()
-    lastName: string;
+    @ApiPropertyOptional()
+    lastName?: string;
 
     @ApiProperty()
     isActive: boolean;
@@ -24,7 +24,7 @@ export class UserResponseDto {
     isEmailVerified: boolean;
 
     @ApiProperty()
-    role: 'admin' | 'user' | 'superadmin';
+    role: string;
 
     @ApiPropertyOptional()
     profilePicture?: string;

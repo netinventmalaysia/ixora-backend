@@ -1,12 +1,8 @@
 import { IsString, IsEmail, IsBoolean, IsOptional, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole } from '../user.entity';
+import { UserRole, UserIdType } from '../user.entity';
 
 export class CreateUserDto {
-    @ApiProperty()
-    @IsString()
-    username: string;
-
     @ApiProperty()
     @IsString()
     password: string;
@@ -19,13 +15,10 @@ export class CreateUserDto {
     @IsString()
     firstName: string;
 
-    @ApiProperty()
-    @IsString()
-    lastName: string;
-
-    @ApiProperty()
-    @IsString()
-    identificationType: string;
+    // identification type is required and must be one of the enum
+    @ApiProperty({ enum: UserIdType })
+    @IsEnum(UserIdType)
+    identificationType: UserIdType;
 
     @ApiProperty()
     @IsString()
@@ -50,6 +43,7 @@ export class CreateUserDto {
     @IsString()
     phoneNumber?: string;
 
+    // Premise / Lot / Street Address
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
@@ -65,6 +59,7 @@ export class CreateUserDto {
     @IsString()
     state?: string;
 
+    // ZIP / Postal code
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
@@ -76,7 +71,7 @@ export class CreateUserDto {
     country?: string;
 
 
-    @ApiPropertyOptional({ type: String, format: 'date-time' })  // Optional date field
+    @ApiPropertyOptional({ type: String, format: 'date-time' })  // Optional date of birth
     @IsOptional()
     dateOfBirth?: Date;
 
@@ -95,9 +90,10 @@ export class CreateUserDto {
     @IsString()
     staffId?: string;
 
-    @ApiProperty({ enum: UserRole })
+    @ApiPropertyOptional({ enum: UserRole })
+    @IsOptional()
     @IsEnum(UserRole)
-    role: UserRole;
+    role?: UserRole;
 
     // @ApiProperty()
     // @IsBoolean()

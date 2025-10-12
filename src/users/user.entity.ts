@@ -24,8 +24,8 @@ export class User {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    username: string;
+    @Column({ nullable: true })
+    username?: string;
 
     @Column()
     password: string;
@@ -42,8 +42,8 @@ export class User {
     @Column()
     firstName: string;
 
-    @Column()
-    lastName: string;
+    @Column({ nullable: true })
+    lastName?: string;
 
     @Column()
     isActive: boolean;
@@ -63,7 +63,7 @@ export class User {
     @Column()
     isEmailVerified: boolean;
 
-    @Column({ type: 'enum', enum: UserRole })
+    @Column({ type: 'enum', enum: UserRole, default: UserRole.PERSONAL })
     role: UserRole;
 
     @Column({ nullable: true })
