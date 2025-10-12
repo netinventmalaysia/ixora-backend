@@ -10,6 +10,7 @@ export enum UserRole {
     BUSINESS = 'business',
     CONSULTANT = 'consultant',
     ADMIN = 'admin',
+    SUPERADMIN = 'superadmin',
 }
 
 export enum UserIdType {
@@ -105,7 +106,7 @@ export class User {
     @Column({ nullable: true, type: 'timestamp' })
     resetTokenExpiry: Date | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     verificationToken: string | null;
 
     @Column({ type: 'datetime', nullable: true })
