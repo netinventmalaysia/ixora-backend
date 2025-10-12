@@ -289,6 +289,7 @@ export class BillingService {
       paidAmount: billing.paidAmount ?? null,
       paidAt: billing.paidAt ?? null,
       gatewayStatus: billing.paymentGatewayStatus ?? null,
+      paymentGatewayTransactionId: billing.paymentGatewayTransactionId ?? null,
       items: (billing.items || []).map(it => ({
         id: it.id,
         order_no: it.order_no,
