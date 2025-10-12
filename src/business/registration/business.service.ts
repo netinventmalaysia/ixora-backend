@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Business } from './business.entity';
 import { Repository } from 'typeorm';
@@ -18,6 +18,11 @@ export class BusinessService {
     ) { }
 
     async create(data: CreateBusinessDto): Promise<Business> {
+        // Guard against duplicate registration numbers
+        const existing = await this.businessRepo.findOne({ where: { registrationNumber: data.registrationNumber } });
+        if (existing) {
+            throw new BadRequestException('Registration number already exists');
+        }
         const business = await this.businessRepo.save(this.businessRepo.create(data));
 
         // Trigger verification if a certificate path is provided and upload record exists
@@ -66,6 +71,12 @@ export class BusinessService {
     }
 
     async update(id: number, data: CreateBusinessDto) {
+        if (data.registrationNumber) {
+            const clash = await this.businessRepo.findOne({ where: { registrationNumber: data.registrationNumber } });
+            if (clash && clash.id !== id) {
+                throw new BadRequestException('Registration number already exists');
+            }
+        }
         await this.businessRepo.update(id, data);
         return this.findById(id);
     }

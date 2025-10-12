@@ -9,7 +9,7 @@ export class Business {
     @Column()
     companyName: string;
 
-    @Column()
+    @Column({ unique: true })
     registrationNumber: string;
 
     @Column({ type: 'date' })
