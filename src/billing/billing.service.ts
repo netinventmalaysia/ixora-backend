@@ -142,6 +142,7 @@ export class BillingService {
           jenis: it.jenis,
           no_akaun: it.no_akaun,
           amaun: it.amaun,
+          bill_no: it.bill_no,
           status: BillingStatus.CREATED,
         }),
       ),
@@ -257,6 +258,7 @@ export class BillingService {
         jenis: b.item_type,
         no_akaun: b.account_no,
         amaun: b.amount,
+        bill_no: b.bill_no,
         status: BillingStatus.CREATED,
       })),
     });
@@ -295,6 +297,7 @@ export class BillingService {
         order_no: it.order_no,
         item_type: it.jenis,
         account_no: it.no_akaun,
+        bill_no: it.bill_no ?? null,
         amount: Number(it.amaun),
         status: it.status,
       })),

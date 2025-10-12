@@ -30,6 +30,10 @@ export class BillingItem {
   @Column({ name: 'amount', type: 'decimal', precision: 12, scale: 2 })
   amaun: number;
 
+  // Optional external bill number (e.g., assessment no_bil, compound nokmp, misc no_rujukan)
+  @Column({ name: 'bill_no', type: 'varchar', length: 128, nullable: true })
+  bill_no?: string | null;
+
   // Track payment state per item as well
   @Column({ type: 'enum', enum: BillingStatus, default: BillingStatus.CREATED })
   status: BillingStatus;

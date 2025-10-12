@@ -16,6 +16,10 @@ export class CreateBillingItemDto {
 
   @IsNumber()
   amaun: number;
+
+  @IsOptional()
+  @IsString()
+  bill_no?: string;
 }
 
 export class CreateBillingDto {
