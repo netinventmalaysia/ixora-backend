@@ -22,10 +22,10 @@ export class MySkbProjectController {
     async submit(@Body() dto: SubmitProjectDto, @Req() req: any) {
         const userId: number = req.user?.userId || req.user?.id;
         if (dto.draft_id) {
-            const saved = await this.service.submitDraftById(Number(dto.draft_id), dto.business_id, userId, dto.data);
+            const saved = await this.service.submitDraftById(Number(dto.draft_id), dto.business_id, userId, dto.data, dto.owners_user_ids);
             return { id: saved.id, status: saved.status };
         }
-        const created = await this.service.submit(dto.business_id, userId, dto.data, dto.useDraft);
+        const created = await this.service.submit(dto.business_id, userId, dto.data, dto.useDraft, dto.owners_user_ids);
         return { id: created.id, status: created.status };
     }
 
@@ -41,7 +41,7 @@ export class MySkbProjectController {
     @Post('draft/:id/submit')
     async submitDraft(@Param('id') id: string, @Body() dto: SubmitDraftByIdDto, @Req() req: any) {
         const userId: number = req.user?.userId || req.user?.id;
-        const saved = await this.service.submitDraftById(parseInt(id, 10), dto.business_id, userId, dto.data);
+        const saved = await this.service.submitDraftById(parseInt(id, 10), dto.business_id, userId, dto.data, dto.owners_user_ids);
         return { id: saved.id, status: saved.status };
     }
 

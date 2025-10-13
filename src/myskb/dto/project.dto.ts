@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsObject, IsOptional, Min, ValidateIf } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsInt, IsObject, IsOptional, Min, ValidateIf } from 'class-validator';
 
 export class UpsertDraftDto {
     @ApiProperty({ name: 'business_id', type: Number })
@@ -38,6 +38,16 @@ export class SubmitProjectDto {
     @Transform(({ value }) => (value !== undefined ? Number(value) : value))
     @IsInt()
     draft_id?: number;
+
+    @ApiPropertyOptional({ description: 'User IDs of project owners to grant view access', type: [Number] })
+    @IsOptional()
+    @IsArray()
+    @Transform(({ value }) => {
+        if (Array.isArray(value)) return value.map((v) => Number(v)).filter((n) => !isNaN(n));
+        if (typeof value === 'string') return value.split(',').map((v) => Number(v.trim())).filter((n) => !isNaN(n));
+        return undefined;
+    })
+    owners_user_ids?: number[];
 }
 
 export class SubmitDraftByIdDto {
@@ -51,6 +61,16 @@ export class SubmitDraftByIdDto {
     @IsOptional()
     @IsObject()
     data?: Record<string, any>;
+
+    @ApiPropertyOptional({ description: 'User IDs of project owners to grant view access', type: [Number] })
+    @IsOptional()
+    @IsArray()
+    @Transform(({ value }) => {
+        if (Array.isArray(value)) return value.map((v) => Number(v)).filter((n) => !isNaN(n));
+        if (typeof value === 'string') return value.split(',').map((v) => Number(v.trim())).filter((n) => !isNaN(n));
+        return undefined;
+    })
+    owners_user_ids?: number[];
 }
 
 export class ListDraftsQueryDto {

@@ -6,12 +6,14 @@ import { InviteOwnershipDto, ListOwnershipQueryDto, UpdateOwnershipDto } from '.
 import { User } from '../users/user.entity';
 import { MailService } from '../mail/mail.service';
 import { randomBytes } from 'crypto';
+import { MySkbProjectOwner } from './project-owner.entity';
 
 @Injectable()
 export class MySkbOwnershipService {
   constructor(
     @InjectRepository(MySkbOwnership) private readonly repo: Repository<MySkbOwnership>,
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(MySkbProjectOwner) private readonly projectOwners: Repository<MySkbProjectOwner>,
     private readonly mail: MailService,
   ) { }
 
@@ -109,12 +111,23 @@ export class MySkbOwnershipService {
     return { message: 'Removed' };
   }
 
-  async access(businessId: number) {
+  async access(businessId: number, userId?: number) {
     // If business has project-only members, return Application tab; full access means []
     // This method assumes caller is the logged-in user; here we only shape the response as requested.
     // For now, always return Application for limited users by checking scope of any ownerships for the business
     const limited = await this.repo.findOne({ where: { businessId, scope: OwnershipScope.PROJECT_ONLY } });
     if (limited) return { allowedTabs: ['Application'] };
+
+    // Additionally, if the current user is an owner for any project under this business, allow Application
+    if (userId) {
+      const exists = await this.projectOwners
+        .createQueryBuilder('po')
+        .innerJoin('myskb_projects', 'p', 'p.id = po.projectId AND p.businessId = :bid', { bid: businessId })
+        .where('po.ownerUserId = :uid', { uid: userId })
+        .limit(1)
+        .getRawOne();
+      if (exists) return { allowedTabs: ['Application'] };
+    }
     return { allowedTabs: [] };
   }
 }

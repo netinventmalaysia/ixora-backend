@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -41,7 +41,9 @@ export class MySkbOwnershipController {
   }
 
   @Get('access')
-  access(@Query('business_id') bid: string) {
-    return this.service.access(parseInt(bid, 10));
+  @Roles('business', 'admin', 'personal')
+  access(@Query('business_id') bid: string, @Req() req: any) {
+    const userId: number | undefined = req.user?.userId ?? req.user?.id ?? req.user?.sub;
+    return this.service.access(parseInt(bid, 10), userId);
   }
 }

@@ -46,7 +46,7 @@ export class MySkbProjectService {
         return draft;
     }
 
-    async submit(businessId: number, userId: number, data?: Record<string, any>, useDraft = true) {
+    async submit(businessId: number, userId: number, data?: Record<string, any>, useDraft = true, ownersUserIds?: number[]) {
         let payload = data;
         if (useDraft || !data) {
             const draft = await this.repo.findOne({ where: { businessId, userId, status: ProjectStatus.DRAFT } });
@@ -59,14 +59,13 @@ export class MySkbProjectService {
         const ownerId = biz?.userId ?? null;
         const submission = this.repo.create({ businessId, userId, ownerId, status: ProjectStatus.SUBMITTED, data: payload });
         await this.repo.save(submission);
-        if (ownerId) {
-            await this.ownerRepo
-                .createQueryBuilder()
-                .insert()
-                .into(MySkbProjectOwner)
-                .values({ projectId: submission.id, ownerUserId: ownerId })
-                .orIgnore()
-                .execute();
+        // Attach owners: include business owner and any provided owners list
+        const owners = new Set<number>();
+        if (ownerId) owners.add(ownerId);
+        if (Array.isArray(ownersUserIds)) for (const uid of ownersUserIds) if (typeof uid === 'number' && !isNaN(uid)) owners.add(uid);
+        if (owners.size) {
+            const values = Array.from(owners).map((uid) => ({ projectId: submission.id, ownerUserId: uid }));
+            await this.ownerRepo.createQueryBuilder().insert().into(MySkbProjectOwner).values(values).orIgnore().execute();
         }
         return submission;
     }
@@ -93,7 +92,7 @@ export class MySkbProjectService {
         return draft;
     }
 
-    async submitDraftById(id: number, businessId: number, userId: number, data?: Record<string, any>) {
+    async submitDraftById(id: number, businessId: number, userId: number, data?: Record<string, any>, ownersUserIds?: number[]) {
         const draft = await this.repo.findOne({ where: { id, businessId, userId } });
         if (!draft) throw new NotFoundException('Draft not found');
         if (data) draft.data = data;
@@ -106,14 +105,13 @@ export class MySkbProjectService {
             draft.ownerId = biz?.userId ?? null;
         }
         await this.repo.save(draft);
-        if (draft.ownerId) {
-            await this.ownerRepo
-                .createQueryBuilder()
-                .insert()
-                .into(MySkbProjectOwner)
-                .values({ projectId: draft.id, ownerUserId: draft.ownerId })
-                .orIgnore()
-                .execute();
+        // Attach owners for submitted draft
+        const owners = new Set<number>();
+        if (draft.ownerId) owners.add(draft.ownerId);
+        if (Array.isArray(ownersUserIds)) for (const uid of ownersUserIds) if (typeof uid === 'number' && !isNaN(uid)) owners.add(uid);
+        if (owners.size) {
+            const values = Array.from(owners).map((uid) => ({ projectId: draft.id, ownerUserId: uid }));
+            await this.ownerRepo.createQueryBuilder().insert().into(MySkbProjectOwner).values(values).orIgnore().execute();
         }
         return draft;
     }
