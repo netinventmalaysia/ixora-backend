@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MySkbProject, ProjectStatus } from './project.entity';
 import { Business } from '../business/registration/business.entity';
+import { MySkbProjectOwner } from './project-owner.entity';
 
 @Injectable()
 export class MySkbProjectService {
@@ -11,6 +12,8 @@ export class MySkbProjectService {
         private readonly repo: Repository<MySkbProject>,
         @InjectRepository(Business)
         private readonly businessRepo: Repository<Business>,
+        @InjectRepository(MySkbProjectOwner)
+        private readonly ownerRepo: Repository<MySkbProjectOwner>,
     ) { }
 
     async upsertDraft(businessId: number, userId: number, data: Record<string, any>) {
@@ -30,6 +33,16 @@ export class MySkbProjectService {
             }
         }
         await this.repo.save(draft);
+        // Ensure join table has the owner mapping
+        if (draft.ownerId) {
+            await this.ownerRepo
+                .createQueryBuilder()
+                .insert()
+                .into(MySkbProjectOwner)
+                .values({ projectId: draft.id, ownerUserId: draft.ownerId })
+                .orIgnore()
+                .execute();
+        }
         return draft;
     }
 
@@ -46,6 +59,15 @@ export class MySkbProjectService {
         const ownerId = biz?.userId ?? null;
         const submission = this.repo.create({ businessId, userId, ownerId, status: ProjectStatus.SUBMITTED, data: payload });
         await this.repo.save(submission);
+        if (ownerId) {
+            await this.ownerRepo
+                .createQueryBuilder()
+                .insert()
+                .into(MySkbProjectOwner)
+                .values({ projectId: submission.id, ownerUserId: ownerId })
+                .orIgnore()
+                .execute();
+        }
         return submission;
     }
 
@@ -59,6 +81,15 @@ export class MySkbProjectService {
             draft.ownerId = biz?.userId ?? null;
         }
         await this.repo.save(draft);
+        if (draft.ownerId) {
+            await this.ownerRepo
+                .createQueryBuilder()
+                .insert()
+                .into(MySkbProjectOwner)
+                .values({ projectId: draft.id, ownerUserId: draft.ownerId })
+                .orIgnore()
+                .execute();
+        }
         return draft;
     }
 
@@ -75,6 +106,15 @@ export class MySkbProjectService {
             draft.ownerId = biz?.userId ?? null;
         }
         await this.repo.save(draft);
+        if (draft.ownerId) {
+            await this.ownerRepo
+                .createQueryBuilder()
+                .insert()
+                .into(MySkbProjectOwner)
+                .values({ projectId: draft.id, ownerUserId: draft.ownerId })
+                .orIgnore()
+                .execute();
+        }
         return draft;
     }
 
@@ -107,8 +147,9 @@ export class MySkbProjectService {
 
     async list(userId: number, status?: ProjectStatus, limit = 20, offset = 0, businessId?: number) {
         const qb = this.repo.createQueryBuilder('p')
-            // A user can see submissions they created OR those owned by them (ownerId)
-            .where('(p.userId = :userId OR p.ownerId = :userId)', { userId })
+            // A user can see submissions they created OR those where they are an owner via join table
+            .leftJoin(MySkbProjectOwner, 'po', 'po.projectId = p.id')
+            .where('(p.userId = :userId OR po.ownerUserId = :userId)', { userId })
             .orderBy('p.updatedAt', 'DESC')
             .skip(offset)
             .take(limit);
