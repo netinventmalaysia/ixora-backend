@@ -2,21 +2,32 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MySkbProject, ProjectStatus } from './project.entity';
+import { Business } from '../business/registration/business.entity';
 
 @Injectable()
 export class MySkbProjectService {
     constructor(
         @InjectRepository(MySkbProject)
         private readonly repo: Repository<MySkbProject>,
+        @InjectRepository(Business)
+        private readonly businessRepo: Repository<Business>,
     ) { }
 
     async upsertDraft(businessId: number, userId: number, data: Record<string, any>) {
         // Find existing draft for this user+business
         let draft = await this.repo.findOne({ where: { businessId, userId, status: ProjectStatus.DRAFT } });
         if (!draft) {
-            draft = this.repo.create({ businessId, userId, status: ProjectStatus.DRAFT, data });
+            // Resolve ownerId from Business
+            const biz = await this.businessRepo.findOne({ where: { id: businessId } });
+            const ownerId = biz?.userId ?? null;
+            draft = this.repo.create({ businessId, userId, ownerId, status: ProjectStatus.DRAFT, data });
         } else {
             draft.data = data;
+            // Keep ownerId in sync if missing
+            if (!draft.ownerId) {
+                const biz = await this.businessRepo.findOne({ where: { id: businessId } });
+                draft.ownerId = biz?.userId ?? null;
+            }
         }
         await this.repo.save(draft);
         return draft;
@@ -31,7 +42,9 @@ export class MySkbProjectService {
         if (!payload) {
             throw new NotFoundException('No draft found and no data provided');
         }
-        const submission = this.repo.create({ businessId, userId, status: ProjectStatus.SUBMITTED, data: payload });
+        const biz = await this.businessRepo.findOne({ where: { id: businessId } });
+        const ownerId = biz?.userId ?? null;
+        const submission = this.repo.create({ businessId, userId, ownerId, status: ProjectStatus.SUBMITTED, data: payload });
         await this.repo.save(submission);
         return submission;
     }
@@ -41,6 +54,10 @@ export class MySkbProjectService {
         if (!draft) throw new NotFoundException('Draft not found');
         if (draft.status !== ProjectStatus.DRAFT) return draft; // idempotent for submitted
         draft.data = data;
+        if (!draft.ownerId) {
+            const biz = await this.businessRepo.findOne({ where: { id: businessId } });
+            draft.ownerId = biz?.userId ?? null;
+        }
         await this.repo.save(draft);
         return draft;
     }
@@ -53,6 +70,10 @@ export class MySkbProjectService {
             return draft; // idempotent
         }
         draft.status = ProjectStatus.SUBMITTED;
+        if (!draft.ownerId) {
+            const biz = await this.businessRepo.findOne({ where: { id: businessId } });
+            draft.ownerId = biz?.userId ?? null;
+        }
         await this.repo.save(draft);
         return draft;
     }
@@ -79,13 +100,15 @@ export class MySkbProjectService {
             data: p.data,
             businessId: p.businessId,
             userId: p.userId,
+            ownerId: p.ownerId ?? null,
         }));
         return { data, total, limit, offset };
     }
 
     async list(userId: number, status?: ProjectStatus, limit = 20, offset = 0, businessId?: number) {
         const qb = this.repo.createQueryBuilder('p')
-            .where('p.userId = :userId', { userId })
+            // A user can see submissions they created OR those owned by them (ownerId)
+            .where('(p.userId = :userId OR p.ownerId = :userId)', { userId })
             .orderBy('p.updatedAt', 'DESC')
             .skip(offset)
             .take(limit);
@@ -100,6 +123,7 @@ export class MySkbProjectService {
             data: p.data,
             businessId: p.businessId,
             userId: p.userId,
+            ownerId: p.ownerId ?? null,
         }));
         return { data, total, limit, offset };
     }

@@ -17,6 +17,11 @@ export class MySkbProject {
     @Column({ type: 'int' })
     userId: number;
 
+    // The business owner's user ID; allows owner to view submissions made by consultants
+    @Index()
+    @Column({ type: 'int', nullable: true })
+    ownerId: number | null;
+
     @Column({ type: 'enum', enum: ProjectStatus, default: ProjectStatus.DRAFT })
     status: ProjectStatus;
 
