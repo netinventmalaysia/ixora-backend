@@ -19,6 +19,10 @@ export class UpdateUserDto {
     lastName?: string;
 
     @IsOptional()
+    @IsString()
+    identificationNumber?: string;
+
+    @IsOptional()
     @IsDateString()
     dateOfBirth?: string;  // You may consider Date if you use transform
 
