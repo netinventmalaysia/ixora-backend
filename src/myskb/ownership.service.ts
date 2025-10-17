@@ -112,22 +112,37 @@ export class MySkbOwnershipService {
   }
 
   async access(businessId: number, userId?: number) {
-    // If business has project-only members, return Application tab; full access means []
-    // This method assumes caller is the logged-in user; here we only shape the response as requested.
-    // For now, always return Application for limited users by checking scope of any ownerships for the business
-    const limited = await this.repo.findOne({ where: { businessId, scope: OwnershipScope.PROJECT_ONLY } });
-    if (limited) return { allowedTabs: ['Application'] };
+    // Interpret [] as full access (no restriction). ['Application'] means application-only.
+    // Restrict per-user, not globally per business.
+    if (!businessId || Number.isNaN(Number(businessId))) {
+      // If business is unknown, do not restrict
+      return { allowedTabs: [] };
+    }
 
-    // Additionally, if the current user is an owner for any project under this business, allow Application
-    if (userId) {
+    if (userId && !Number.isNaN(Number(userId))) {
+      // Check current user's ownership record for this business
+      const userOwnership = await this.repo.findOne({ where: { businessId, userId, status: OwnershipStatus.APPROVED } });
+      if (userOwnership?.scope === OwnershipScope.PROJECT_ONLY) {
+        return { allowedTabs: ['Application'] };
+      }
+      // If user has an ownership (full or unspecified scope), grant full access
+      if (userOwnership) {
+        return { allowedTabs: [] };
+      }
+
+      // If user is explicitly a project co-owner (without a general ownership record), limit to Application
       const exists = await this.projectOwners
         .createQueryBuilder('po')
         .innerJoin('myskb_projects', 'p', 'p.id = po.projectId AND p.businessId = :bid', { bid: businessId })
         .where('po.ownerUserId = :uid', { uid: userId })
         .limit(1)
         .getRawOne();
-      if (exists) return { allowedTabs: ['Application'] };
+      if (exists) {
+        return { allowedTabs: ['Application'] };
+      }
     }
+
+    // Default: full access (no explicit restrictions)
     return { allowedTabs: [] };
   }
 }
