@@ -21,11 +21,7 @@ export class MySkbProjectController {
     @Post('submit')
     async submit(@Body() dto: SubmitProjectDto, @Req() req: any) {
         const userId: number = req.user?.userId || req.user?.id;
-        if (dto.draft_id) {
-            const saved = await this.service.submitDraftById(Number(dto.draft_id), dto.business_id, userId, dto.data, dto.owners_user_ids);
-            return { id: saved.id, status: saved.status };
-        }
-        const created = await this.service.submit(dto.business_id, userId, dto.data, dto.useDraft, dto.owners_user_ids);
+        const created = await this.service.submit(dto.business_id, userId, dto.owners_user_ids, dto.data);
         return { id: created.id, status: created.status };
     }
 
@@ -33,42 +29,16 @@ export class MySkbProjectController {
     @Put('draft/:id')
     async updateDraft(@Param('id') id: string, @Body() dto: UpsertDraftDto, @Req() req: any) {
         const userId: number = req.user?.userId || req.user?.id;
-        const saved = await this.service.updateDraftById(parseInt(id, 10), dto.business_id, userId, dto.data);
+        const saved = await this.service.asAsDraft(parseInt(id, 10), dto.business_id, userId, dto.data);
         return { id: saved.id, status: saved.status, updated_at: saved.updatedAt };
     }
 
-    // Submit an existing draft by id (optionally save latest data first)
-    @Post('draft/:id/submit')
-    async submitDraft(@Param('id') id: string, @Body() dto: SubmitDraftByIdDto, @Req() req: any) {
-        const userId: number = req.user?.userId || req.user?.id;
-        const saved = await this.service.submitDraftById(parseInt(id, 10), dto.business_id, userId, dto.data, dto.owners_user_ids);
-        return { id: saved.id, status: saved.status };
-    }
-
-    @Get('latest')
-    async latest(@Req() req: any) {
-        const userId: number = req.user?.userId || req.user?.id;
-        const businessId = Number(req.query.business_id || req.query.businessId);
-        const res = await this.service.latest(businessId, userId);
-        return res ? { id: res.id, status: res.status, updated_at: res.updatedAt } : null;
-    }
-
-    // Primary: GET /myskb/project/draft
-    @Get('draft')
-    async listDrafts(@Query() q: ListDraftsQueryDto, @Req() req: any) {
-        const userId: number = req.user?.userId || req.user?.id;
-        const { limit = 20, offset = 0, business_id } = q;
-        const result = await this.service.listDrafts(userId, limit, offset, business_id);
-        return result;
-    }
-
-    // Fallback: GET /myskb/project?status=Draft
+    // Get all projects by viewer
     @Get()
-    async list(@Query() q: ListProjectsQueryDto, @Req() req: any) {
-        const userId: number = req.user?.userId || req.user?.id;
-        const { limit = 20, offset = 0, business_id, status } = q;
+    async list(@Query() query: ListProjectsQueryDto, @Req() req: any) {
+        const { limit = 20, offset = 0, viewerUserId, status } = query;
         const normalizedStatus = status as any; // DTO restricts to 'draft' | 'submitted'
-        const result = await this.service.list(userId, normalizedStatus, limit, offset, business_id);
+        const result = await this.service.list(viewerUserId, limit, offset);
         return result;
     }
 }

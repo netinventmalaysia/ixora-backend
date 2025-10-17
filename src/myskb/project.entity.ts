@@ -3,6 +3,16 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 export enum ProjectStatus {
     DRAFT = 'draft',
     SUBMITTED = 'submitted',
+    APPROVED = 'approved',
+    PENDING_PAYMENT = 'pending_payment',
+    PAID = 'paid',
+    REJECTED = 'rejected',
+    EXPIRED = 'expired',
+    PENDING_RENEWAL = 'pending_renewal',
+    PROJECT_COMPLETED = 'project_completed',
+    PROJECT_ONHOLD = 'project_onhold',
+    PROJECT_CANCELLED = 'project_cancelled',
+
 }
 
 @Entity('myskb_projects')
@@ -15,12 +25,7 @@ export class MySkbProject {
     businessId: number;
 
     @Column({ type: 'int' })
-    userId: number;
-
-    // The business owner's user ID; allows owner to view submissions made by consultants
-    @Index()
-    @Column({ type: 'int', nullable: true })
-    ownerId: number | null;
+    createdBy: number;
 
     @Column({ type: 'enum', enum: ProjectStatus, default: ProjectStatus.DRAFT })
     status: ProjectStatus;

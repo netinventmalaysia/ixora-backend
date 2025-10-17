@@ -21,23 +21,12 @@ export class SubmitProjectDto {
     @IsInt()
     business_id: number;
 
-    @ApiPropertyOptional({ description: 'If true, submit latest draft for the user', default: true })
-    @IsOptional()
-    @IsBoolean()
-    useDraft?: boolean = true;
-
     @ApiPropertyOptional({ description: 'Project form payload; required if useDraft is false or no draft exists', type: Object })
     @IsOptional()
     @ValidateIf((o) => !o.useDraft)
     @IsObject()
     data?: Record<string, any>;
 
-    @ApiPropertyOptional({ description: 'If provided, submit the specified draft id in-place' })
-    @IsOptional()
-    @Type(() => Number)
-    @Transform(({ value }) => (value !== undefined ? Number(value) : value))
-    @IsInt()
-    draft_id?: number;
 
     @ApiPropertyOptional({ description: 'User IDs of project owners to grant view access', type: [Number] })
     @IsOptional()
@@ -47,7 +36,7 @@ export class SubmitProjectDto {
         if (typeof value === 'string') return value.split(',').map((v) => Number(v.trim())).filter((n) => !isNaN(n));
         return undefined;
     })
-    owners_user_ids?: number[];
+    owners_user_ids: number[];
 }
 
 export class SubmitDraftByIdDto {
@@ -97,8 +86,12 @@ export class ListDraftsQueryDto {
 }
 
 export class ListProjectsQueryDto extends ListDraftsQueryDto {
-    @IsOptional()
-    @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() : value))
-    @IsIn(['draft', 'submitted'])
-    status?: 'draft' | 'submitted';
+
+
+    @IsIn(['draft', 'submitted', 'approved', 'pending_payment', 'paid', 'rejected', 'expired', 'pending_renewal', 'project_completed', 'project_onhold', 'project_cancelled'])
+    status?: 'submitted';
+
+    //required to have userId
+    @IsInt()
+    viewerUserId: number;
 }
