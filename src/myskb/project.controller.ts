@@ -37,7 +37,6 @@ export class MySkbProjectController {
     @Get()
     async list(@Query() query: ListProjectsQueryDto, @Req() req: any) {
         const { limit = 20, offset = 0, viewerUserId, status } = query;
-        const normalizedStatus = status as any; // DTO restricts to 'draft' | 'submitted'
         const result = await this.service.list(viewerUserId, limit, offset);
         return result;
     }
