@@ -16,7 +16,7 @@ export enum ProjectStatus {
 }
 
 @Entity('myskb_projects')
-@Index(['businessId', 'userId', 'status'])
+@Index(['businessId', 'createdBy', 'status'])
 export class MySkbProject {
     @PrimaryGeneratedColumn()
     id: number;

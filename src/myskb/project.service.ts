@@ -100,7 +100,7 @@ export class MySkbProjectService {
 
     async listDrafts(userId: number, limit = 20, offset = 0, businessId?: number) {
         const qb = this.repo.createQueryBuilder('p')
-            .where('p.userId = :userId', { userId })
+            .where('p.createdBy = :userId', { userId })
             .andWhere('p.status = :status', { status: ProjectStatus.DRAFT })
             .orderBy('p.updatedAt', 'DESC')
             .skip(offset)
@@ -122,7 +122,7 @@ export class MySkbProjectService {
     async list(viewerUserId: number, limit = 20, offset = 0, businessId?: number) {
         const qb = this.repo.createQueryBuilder('p')
             .leftJoin(MySkbProjectOwner, 'po', 'po.projectId = p.id')
-            .where('(p.userId = :userId OR po.ownerUserId = :userId)', { userId: viewerUserId })
+            .where('(p.createdBy = :userId OR po.ownerUserId = :userId)', { userId: viewerUserId })
             .orderBy('p.updatedAt', 'DESC')
             .skip(offset)
             .take(limit);
