@@ -111,18 +111,24 @@ export class BusinessService {
     }
 
     async findById(id: number) {
+        if (typeof id !== 'number' || !Number.isFinite(id) || id <= 0) {
+            throw new BadRequestException('Invalid business id');
+        }
         const business = await this.businessRepo.findOne({
             where: { id },
         });
 
         if (!business) {
-            throw new Error('Business not found');
+            throw new BadRequestException('Business not found');
         }
 
         return business;
     }
 
     async update(id: number, data: CreateBusinessDto) {
+        if (typeof id !== 'number' || !Number.isFinite(id) || id <= 0) {
+            throw new BadRequestException('Invalid business id');
+        }
         if (data.registrationNumber) {
             const clash = await this.businessRepo.findOne({ where: { registrationNumber: data.registrationNumber } });
             if (clash && clash.id !== id) {
@@ -134,12 +140,18 @@ export class BusinessService {
     }
 
     async updateStatus(id: number, status: string) {
+        if (typeof id !== 'number' || !Number.isFinite(id) || id <= 0) {
+            throw new BadRequestException('Invalid business id');
+        }
         await this.businessRepo.update(id, { status });
         return this.findById(id);
     }
 
     // Submit LAM registration number and document path for a business
     async submitLam(businessId: number, body: { lamNumber: string; lamDocumentPath: string }) {
+        if (typeof businessId !== 'number' || !Number.isFinite(businessId) || businessId <= 0) {
+            throw new BadRequestException('Invalid business id');
+        }
         if (!body?.lamNumber || !body?.lamNumber.trim()) {
             throw new BadRequestException('lamNumber is required');
         }
@@ -173,6 +185,9 @@ export class BusinessService {
 
     // Admin verifies LAM and upgrades owner to consultant on approval
     async verifyLam(businessId: number, status: 'Approved' | 'Rejected', reason?: string) {
+        if (typeof businessId !== 'number' || !Number.isFinite(businessId) || businessId <= 0) {
+            throw new BadRequestException('Invalid business id');
+        }
         const business = await this.findById(businessId);
         if (!business) throw new BadRequestException('Business not found');
         const patch: Partial<Business> = {
