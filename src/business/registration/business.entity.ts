@@ -73,4 +73,7 @@ export class Business {
 
     @Column({ type: 'timestamp', nullable: true })
     lamVerifiedAt: Date | null;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    lamStatusReason: string | null;
 }

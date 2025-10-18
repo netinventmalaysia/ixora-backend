@@ -193,6 +193,7 @@ export class BusinessService {
         const patch: Partial<Business> = {
             lamStatus: status,
             lamVerifiedAt: status === 'Approved' ? new Date() : null,
+            lamStatusReason: reason ? String(reason).slice(0, 255) : null,
         } as any;
         await this.businessRepo.update(businessId, patch);
         // On approval, promote owner to consultant role
