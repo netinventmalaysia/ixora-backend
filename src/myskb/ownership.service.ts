@@ -112,42 +112,28 @@ export class MySkbOwnershipService {
   }
 
   async access(businessId: number, userId?: number) {
-    // Interpret [] as full access (no restriction). ['Application'] means application-only.
-    // Restrict per-user, not globally per business.
-    if (!businessId || Number.isNaN(Number(businessId))) {
-      // If business is unknown, do not restrict
-      return { allowedTabs: [] };
+    // who can access
+    // personal user that is owneruserid list in project owners
+    // If businessId is provided, prefer matching that business; otherwise, any project ownership qualifies for application-only
+    let isOwner: MySkbProjectOwner | null = null;
+    if (userId) {
+      isOwner = await this.projectOwners.findOne({ where: businessId ? { ownerUserId: userId, businessId } as any : { ownerUserId: userId } as any });
+    }
+    if (isOwner) {
+      return { allowedTabs: ['application'], projectOnly: true } as any;
     }
 
-    if (userId && !Number.isNaN(Number(userId))) {
-      // Consultants get full access to MySKB tabs
-      const user = await this.users.findOne({ where: { id: userId } });
-      if (user?.role === UserRole.CONSULTANT) {
-        return { allowedTabs: [] };
-      }
-      // Check current user's ownership record for this business
-      const userOwnership = await this.repo.findOne({ where: { businessId, userId, status: OwnershipStatus.APPROVED } });
-      if (userOwnership?.scope === OwnershipScope.PROJECT_ONLY) {
-        return { allowedTabs: ['Application'] };
-      }
-      // If user has an ownership (full or unspecified scope), grant full access
-      if (userOwnership) {
-        return { allowedTabs: [] };
-      }
-
-      // If user is explicitly a project co-owner (without a general ownership record), limit to Application
-      const exists = await this.projectOwners
-        .createQueryBuilder('po')
-        .innerJoin('myskb_projects', 'p', 'p.id = po.projectId AND p.businessId = :bid', { bid: businessId })
-        .where('po.ownerUserId = :uid', { uid: userId })
-        .limit(1)
-        .getRawOne();
-      if (exists) {
-        return { allowedTabs: ['Application'] };
+    // Full access when there is an approved ownership record for this business and user
+    if (businessId && userId) {
+      const ownership = await this.repo.findOne({ where: { businessId, userId, status: OwnershipStatus.APPROVED } });
+      if (ownership) {
+        // Empty or missing allowedTabs means no restrictions on FE
+        return { allowedTabs: [] } as any;
       }
     }
 
-    // Default: full access (no explicit restrictions)
-    return { allowedTabs: [] };
+    // Default: do not impose FE restrictions explicitly
+    // FE will treat missing/empty allowedTabs as unrestricted, and sidebar visibility is handled client-side
+    return {} as any;
   }
 }
