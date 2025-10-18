@@ -192,12 +192,22 @@ export class BusinessService {
     }
 
     async listByLamStatus(status: string, limit = 50, offset = 0) {
-        const [rows, total] = await this.businessRepo.findAndCount({
-            where: { lamStatus: status },
-            order: { updatedAt: 'DESC' },
-            take: limit,
-            skip: offset,
-        } as any);
-        return { data: rows, total, limit, offset };
+        try {
+            const [rows, total] = await this.businessRepo.findAndCount({
+                where: { lamStatus: status },
+                order: { updatedAt: 'DESC' },
+                take: limit,
+                skip: offset,
+            } as any);
+            return { data: rows, total, limit, offset };
+        } catch (err) {
+            // Defensive fallback: if the schema hasn't been migrated yet in this environment,
+            // avoid taking down the approvals page. Return empty results and log a warning.
+            // Typical error: Unknown column 'lamStatus' in 'where clause'.
+            // Ensure the migration 1760748121082-AlterBusinessLAM has been applied.
+            // eslint-disable-next-line no-console
+            console.warn?.('[BusinessService.listByLamStatus] Fallback due to error:', err?.message || err);
+            return { data: [], total: 0, limit, offset };
+        }
     }
 }
