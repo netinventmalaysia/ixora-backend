@@ -193,7 +193,7 @@ export class BusinessService {
                     lamNumber,
                 });
             }
-        } catch {}
+        } catch { }
 
         // Queue a verification record if we have a document upload that matches path
         if (patch.lamDocumentPath) {
@@ -240,7 +240,7 @@ export class BusinessService {
                     reason,
                 });
             }
-        } catch {}
+        } catch { }
         return this.findById(businessId);
     }
 
