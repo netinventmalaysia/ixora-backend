@@ -41,7 +41,7 @@ export class MySkbOwnershipController {
   }
 
   @Get('access')
-  @Roles('business', 'admin', 'personal')
+  @Roles('business', 'admin', 'personal', 'consultant')
   access(@Query('business_id') bid: string, @Req() req: any) {
     const userId: number | undefined = req.user?.userId ?? req.user?.id ?? req.user?.sub;
     return this.service.access(parseInt(bid, 10), userId);

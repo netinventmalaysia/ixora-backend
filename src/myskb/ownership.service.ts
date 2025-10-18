@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { MySkbOwnership, OwnershipScope, OwnershipStatus } from './ownership.entity';
 import { InviteOwnershipDto, ListOwnershipQueryDto, UpdateOwnershipDto } from './dto/ownership.dto';
-import { User } from '../users/user.entity';
+import { User, UserRole } from '../users/user.entity';
 import { MailService } from '../mail/mail.service';
 import { randomBytes } from 'crypto';
 import { MySkbProjectOwner } from './project-owner.entity';
@@ -120,6 +120,11 @@ export class MySkbOwnershipService {
     }
 
     if (userId && !Number.isNaN(Number(userId))) {
+      // Consultants get full access to MySKB tabs
+      const user = await this.users.findOne({ where: { id: userId } });
+      if (user?.role === UserRole.CONSULTANT) {
+        return { allowedTabs: [] };
+      }
       // Check current user's ownership record for this business
       const userOwnership = await this.repo.findOne({ where: { businessId, userId, status: OwnershipStatus.APPROVED } });
       if (userOwnership?.scope === OwnershipScope.PROJECT_ONLY) {
