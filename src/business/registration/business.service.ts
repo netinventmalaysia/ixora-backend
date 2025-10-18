@@ -8,7 +8,7 @@ import { UploadsEntity } from '../../uploads/uploads.entity';
 import { VerificationService } from '../../verification/verification.service';
 import { TeamMember, TeamMemberStatus } from '../team/team-member.entity';
 import { MailService } from 'src/mail/mail.service';
-import { User } from 'src/users/user.entity';
+import { User, UserRole } from 'src/users/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { addMinutes } from 'date-fns';
 
@@ -136,5 +136,68 @@ export class BusinessService {
     async updateStatus(id: number, status: string) {
         await this.businessRepo.update(id, { status });
         return this.findById(id);
+    }
+
+    // Submit LAM registration number and document path for a business
+    async submitLam(businessId: number, body: { lamNumber: string; lamDocumentPath: string }) {
+        if (!body?.lamNumber || !body?.lamNumber.trim()) {
+            throw new BadRequestException('lamNumber is required');
+        }
+        const lamNumber = body.lamNumber.trim();
+        // Enforce uniqueness across businesses
+        const clash = await this.businessRepo.findOne({ where: { lamNumber } });
+        if (clash && clash.id !== businessId) {
+            throw new BadRequestException('LAM number already used by another business');
+        }
+        const patch: Partial<Business> = {
+            lamNumber,
+            lamDocumentPath: body.lamDocumentPath || null,
+            lamStatus: 'Pending',
+            lamVerifiedAt: null,
+        } as any;
+        await this.businessRepo.update(businessId, patch);
+
+        // Queue a verification record if we have a document upload that matches path
+        if (patch.lamDocumentPath) {
+            const upload = await this.uploadsRepo.findOne({ where: { path: patch.lamDocumentPath } });
+            if (upload) {
+                await this.verificationService.queueBusinessRegistrationVerification({
+                    businessId,
+                    uploadId: upload.id,
+                    documentType: 'lam_registration',
+                });
+            }
+        }
+        return this.findById(businessId);
+    }
+
+    // Admin verifies LAM and upgrades owner to consultant on approval
+    async verifyLam(businessId: number, status: 'Approved' | 'Rejected', reason?: string) {
+        const business = await this.findById(businessId);
+        if (!business) throw new BadRequestException('Business not found');
+        const patch: Partial<Business> = {
+            lamStatus: status,
+            lamVerifiedAt: status === 'Approved' ? new Date() : null,
+        } as any;
+        await this.businessRepo.update(businessId, patch);
+        // On approval, promote owner to consultant role
+        if (status === 'Approved' && business.userId) {
+            const user = await this.userRepo.findOne({ where: { id: business.userId } });
+            if (user && user.role !== UserRole.CONSULTANT) {
+                user.role = UserRole.CONSULTANT;
+                await this.userRepo.save(user);
+            }
+        }
+        return this.findById(businessId);
+    }
+
+    async listByLamStatus(status: string, limit = 50, offset = 0) {
+        const [rows, total] = await this.businessRepo.findAndCount({
+            where: { lamStatus: status },
+            order: { updatedAt: 'DESC' },
+            take: limit,
+            skip: offset,
+        } as any);
+        return { data: rows, total, limit, offset };
     }
 }

@@ -60,4 +60,17 @@ export class Business {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    // LAM (Lembaga Arkitek Malaysia) consultant registration
+    @Column({ type: 'varchar', length: 191, nullable: true, unique: true })
+    lamNumber: string | null;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    lamDocumentPath: string | null;
+
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    lamStatus: string | null; // e.g., 'Pending' | 'Approved' | 'Rejected'
+
+    @Column({ type: 'timestamp', nullable: true })
+    lamVerifiedAt: Date | null;
 }
