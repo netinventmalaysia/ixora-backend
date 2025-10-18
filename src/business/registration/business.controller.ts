@@ -25,9 +25,9 @@ export class BusinessController {
     }
 
     @Get('/registered')
-    @Roles('admin', 'business', 'personal')
+    @Roles('admin', 'business', 'personal', 'consultant')
     async getMyBusinesses(@Req() req: any) {
-        const userId = req.user.id;
+        const userId = req.user?.userId ?? req.user?.id;
         return this.businessService.findAllMappedByUser(userId);
     }
 
@@ -65,9 +65,11 @@ export class BusinessController {
     @Roles('business')
     async submitLam(
         @Param('id', ParseIntPipe) id: number,
-        @Body() body: { lamNumber: string; lamDocumentPath: string }
+        @Body() body: { lamNumber: string; lamDocumentPath: string },
+        @Req() req: any,
     ) {
-        return this.businessService.submitLam(id, body);
+        const userId = req.user?.userId ?? req.user?.id;
+        return this.businessService.submitLam(id, body, userId);
     }
 
     // Admin approve/reject LAM and upgrade user role to consultant

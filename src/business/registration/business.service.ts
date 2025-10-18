@@ -95,14 +95,14 @@ export class BusinessService {
 
     async findByUser(userId: number) {
         return this.businessRepo.find({
-            where: { /* createdBy: userId */ }, // Add filter if needed
+            where: { userId },
             order: { createdAt: 'DESC' },
         });
     }
 
     async findAllMappedByUser(userId: number) {
         const businesses = await this.businessRepo.find({
-            where: { /* createdBy: userId */ },  // Add if you have relation
+            where: { userId },
             relations: ['user'],
             order: { createdAt: 'DESC' },
         });
@@ -148,12 +148,27 @@ export class BusinessService {
     }
 
     // Submit LAM registration number and document path for a business
-    async submitLam(businessId: number, body: { lamNumber: string; lamDocumentPath: string }) {
+    async submitLam(
+        businessId: number,
+        body: { lamNumber: string; lamDocumentPath: string },
+        userId?: number,
+    ) {
         if (typeof businessId !== 'number' || !Number.isFinite(businessId) || businessId <= 0) {
             throw new BadRequestException('Invalid business id');
         }
         if (!body?.lamNumber || !body?.lamNumber.trim()) {
             throw new BadRequestException('lamNumber is required');
+        }
+        // Load business and enforce ownership if userId is provided
+        const business = await this.findById(businessId);
+        if (!business) throw new BadRequestException('Business not found');
+        if (userId && Number(business.userId) !== Number(userId)) {
+            throw new UnauthorizedException('You do not own this business');
+        }
+        // Block resubmission if already approved
+        const currentStatus = (business.lamStatus || '').toString().toLowerCase();
+        if (currentStatus === 'approved') {
+            throw new BadRequestException('LAM already approved for this business');
         }
         const lamNumber = body.lamNumber.trim();
         // Enforce uniqueness across businesses
