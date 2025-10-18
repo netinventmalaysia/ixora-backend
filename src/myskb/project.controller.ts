@@ -37,7 +37,9 @@ export class MySkbProjectController {
     @Get()
     async list(@Query() query: ListProjectsQueryDto, @Req() req: any) {
         const { limit = 20, offset = 0, viewerUserId, status } = query;
-        const result = await this.service.list(viewerUserId, limit, offset);
+        const fallbackUserId: number | undefined = req.user?.userId || req.user?.id || req.user?.sub;
+        const effectiveViewer = viewerUserId ?? fallbackUserId;
+        const result = await this.service.list(Number(effectiveViewer), limit, offset);
         return result;
     }
 }

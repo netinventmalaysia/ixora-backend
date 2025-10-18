@@ -87,11 +87,14 @@ export class ListDraftsQueryDto {
 
 export class ListProjectsQueryDto extends ListDraftsQueryDto {
 
-
+    @IsOptional()
+    @Transform(({ value }) => (value === '' || value === undefined ? undefined : String(value).toLowerCase()))
     @IsIn(['draft', 'submitted', 'approved', 'pending_payment', 'paid', 'rejected', 'expired', 'pending_renewal', 'project_completed', 'project_onhold', 'project_cancelled'])
-    status?: 'submitted';
+    status?: string;
 
-    //required to have userId
+    // required to have userId; coerce from querystring
+    @Type(() => Number)
+    @Transform(({ value }) => (value !== undefined ? Number(value) : value))
     @IsInt()
     viewerUserId: number;
 }
