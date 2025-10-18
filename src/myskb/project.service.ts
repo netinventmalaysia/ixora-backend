@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { MySkbProject, ProjectStatus } from './project.entity';
 import { Business } from '../business/registration/business.entity';
 import { MySkbProjectOwner } from './project-owner.entity';
+import { User } from '../users/user.entity';
+import { MySkbOwnership } from './ownership.entity';
 
 @Injectable()
 export class MySkbProjectService {
@@ -137,5 +139,54 @@ export class MySkbProjectService {
             userId: p.createdBy,
         }));
         return { data, total, limit, offset };
+    }
+
+    async getByIdWithOwners(id: number, viewerUserId?: number) {
+        const qb = this.repo.createQueryBuilder('p')
+            .leftJoin(MySkbProjectOwner, 'po', 'po.projectId = p.id')
+            .leftJoin(User, 'u', 'u.id = po.ownerUserId')
+            .where('p.id = :id', { id });
+        // Optional access check if viewer provided: must be creator or one of owners
+        if (viewerUserId) {
+            qb.andWhere('(p.createdBy = :viewer OR po.ownerUserId = :viewer)', { viewer: viewerUserId });
+        }
+        const project = await qb.getOne();
+        if (!project) throw new NotFoundException({ message: 'Project not found' });
+        // Load business to include friendly name
+        const biz = await this.businessRepo.findOne({ where: { id: project.businessId } });
+        const businessName = (biz as any)?.name || (biz as any)?.companyName || (biz as any)?.company_name || (biz as any)?.registration_name || undefined;
+        // Load owners with names and ownership type if any
+        const owners = await this.ownerRepo.createQueryBuilder('po')
+            .leftJoin(User, 'u', 'u.id = po.ownerUserId')
+            .leftJoin(MySkbOwnership, 'own', 'own.userId = po.ownerUserId AND own.businessId = :bid', { bid: project.businessId })
+            .select([
+                'po.ownerUserId AS user_id',
+                'u.firstName AS firstName',
+                'u.lastName AS lastName',
+                'u.email AS email',
+                'own.role AS ownershipType',
+            ])
+            .where('po.projectId = :pid', { pid: project.id })
+            .getRawMany();
+        const ownersFormatted = owners.map((row: any) => ({
+            user_id: Number(row.user_id),
+            name: [row.firstName, row.lastName].filter(Boolean).join(' ').trim() || undefined,
+            email: row.email || undefined,
+            ownershipType: row.ownershipType || 'Owner',
+        }));
+        // Normalize status to display form (Title case)
+        const statusRaw = String(project.status || '').toString();
+        const statusTitle = statusRaw
+            ? statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase()
+            : 'Submitted';
+        return {
+            id: project.id,
+            business_id: project.businessId,
+            business: businessName ? { id: project.businessId, name: businessName } : { id: project.businessId },
+            status: statusTitle,
+            created_at: project.createdAt ? project.createdAt.toISOString() : undefined,
+            data: project.data,
+            owners: ownersFormatted,
+        };
     }
 }

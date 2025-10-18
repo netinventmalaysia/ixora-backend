@@ -42,4 +42,13 @@ export class MySkbProjectController {
         const result = await this.service.list(Number(effectiveViewer), limit, offset);
         return result;
     }
+
+    // Get a single project by id (includes owners with user name and ownership type)
+    @Get(':id')
+    async getOne(@Param('id') id: string, @Req() req: any, @Query('viewerUserId') viewerUserId?: string) {
+        const jwtViewer: number | undefined = req.user?.userId || req.user?.id || req.user?.sub;
+        const effective = (viewerUserId !== undefined && viewerUserId !== null) ? Number(viewerUserId) : jwtViewer;
+        const result = await this.service.getByIdWithOwners(Number(id), effective);
+        return result;
+    }
 }
