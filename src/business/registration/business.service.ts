@@ -184,6 +184,17 @@ export class BusinessService {
         } as any;
         await this.businessRepo.update(businessId, patch);
 
+        // Notify owner that LAM submission has been received
+        try {
+            const owner = await this.userRepo.findOne({ where: { id: business.userId } });
+            if (owner?.email) {
+                await this.mailService.sendLamSubmissionReceivedEmail(owner.email, {
+                    businessName: business.companyName,
+                    lamNumber,
+                });
+            }
+        } catch {}
+
         // Queue a verification record if we have a document upload that matches path
         if (patch.lamDocumentPath) {
             const upload = await this.uploadsRepo.findOne({ where: { path: patch.lamDocumentPath } });
@@ -219,6 +230,17 @@ export class BusinessService {
                 await this.userRepo.save(user);
             }
         }
+        // Email result to owner
+        try {
+            const owner = await this.userRepo.findOne({ where: { id: business.userId } });
+            if (owner?.email) {
+                await this.mailService.sendLamVerificationResultEmail(owner.email, {
+                    businessName: business.companyName,
+                    status,
+                    reason,
+                });
+            }
+        } catch {}
         return this.findById(businessId);
     }
 

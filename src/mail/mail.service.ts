@@ -143,4 +143,37 @@ export class MailService {
             `,
         });
     }
+
+    // LAM: Submission acknowledgement to business owner
+    async sendLamSubmissionReceivedEmail(email: string, context: { businessName: string; lamNumber?: string }) {
+        const { businessName, lamNumber } = context || {} as any;
+        return this.mailerService.sendMail({
+            to: email,
+            subject: 'Ixora MBMB: LAM Submission Received',
+            html: `
+                <h3>LAM Submission Received</h3>
+                <p>We have received your LAM details for the business <strong>${businessName || 'your business'}</strong>.</p>
+                ${lamNumber ? `<p><strong>LAM No.:</strong> ${lamNumber}</p>` : ''}
+                <p>Your application is now in review. We will notify you via email once a decision has been made (Approved or Rejected).</p>
+                <p>Thank you,<br/>MBMB Team</p>
+            `,
+        });
+    }
+
+    // LAM: Final decision to business owner
+    async sendLamVerificationResultEmail(email: string, context: { businessName: string; status: 'Approved' | 'Rejected'; reason?: string }) {
+        const { businessName, status, reason } = context || {} as any;
+        const title = status === 'Approved' ? 'LAM Approved' : 'LAM Rejected';
+        const reasonHtml = status === 'Rejected' && reason ? `<p><strong>Reason:</strong> ${reason}</p>` : '';
+        return this.mailerService.sendMail({
+            to: email,
+            subject: `Ixora MBMB: ${title}`,
+            html: `
+                <h3>${title}</h3>
+                <p>Business: <strong>${businessName || 'your business'}</strong></p>
+                ${reasonHtml}
+                <p>Thank you,<br/>MBMB Team</p>
+            `,
+        });
+    }
 }
