@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -15,7 +15,8 @@ export class MySkbOwnershipController {
   constructor(private readonly service: MySkbOwnershipService) { }
 
   @Get()
-  list(@Query() query: ListOwnershipQueryDto & { businessId?: number }) {
+  @Roles('business', 'admin', 'personal', 'consultant')
+  async list(@Query() query: ListOwnershipQueryDto & { businessId?: number }, @Req() req: any) {
     // Support both business_id and businessId
     if (!query.business_id && (query as any).businessId) {
       (query as any).business_id = Number((query as any).businessId);
