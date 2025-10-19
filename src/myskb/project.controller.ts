@@ -60,6 +60,14 @@ export class MySkbProjectController {
         return this.service.adminList(status as any, lim, off);
     }
 
+      // Admin detail view: fetch any project by id with owners and business info
+      @Get('admin/:id')
+      @UseGuards(JwtAuthGuard, RolesGuard)
+      @Roles('admin')
+      async adminGetOne(@Param('id') id: string) {
+          return this.service.getByIdWithOwners(Number(id));
+      }
+
     // Review a submitted project: approve or reject with optional reason
     @Patch(':id/review')
     @UseGuards(JwtAuthGuard, RolesGuard)

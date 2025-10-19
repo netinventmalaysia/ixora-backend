@@ -57,6 +57,10 @@ export class MySkbProjectService {
         return await this.repo.save(draft);
     }
 
+    async adminGetById(id: number) {
+        return this.getByIdWithOwners(id);
+    }
+
     async submit(businessId: number, createdByUserId: number, ownersUserIds: number[], data?: Record<string, any>) {
         let payload = data;
 
