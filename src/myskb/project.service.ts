@@ -221,8 +221,8 @@ export class MySkbProjectService {
         const project = await this.repo.findOne({ where: { id } });
         if (!project) throw new NotFoundException('Project not found');
         const lower = String(status).toLowerCase();
-    let next: ProjectStatus;
-    if (lower === 'approved') next = ProjectStatus.PENDING_PAYMENT; // move to pending payment after admin approval
+        let next: ProjectStatus;
+        if (lower === 'approved') next = ProjectStatus.PENDING_PAYMENT; // move to pending payment after admin approval
         else if (lower === 'rejected') next = ProjectStatus.REJECTED;
         else throw new ForbiddenException('Invalid status');
 
@@ -230,7 +230,7 @@ export class MySkbProjectService {
         const now = new Date();
         const data = project.data || {};
         const audit = { reviewerUserId, status: next, reason, at: now.toISOString() };
-    project.data = { ...data, _review: audit };
+        project.data = { ...data, _review: audit };
         project.status = next;
         const saved = await this.repo.save(project);
         return {
