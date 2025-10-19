@@ -121,19 +121,24 @@ export class MySkbProjectService {
         return { data, total, limit, offset };
     }
 
-    async list(viewerUserId: number, limit = 20, offset = 0, businessId?: number) {
+    async list(viewerUserId: number, limit = 20, offset = 0, businessId?: number, status?: ProjectStatus | string) {
         const qb = this.repo.createQueryBuilder('p')
             .leftJoin(MySkbProjectOwner, 'po', 'po.projectId = p.id')
             .where('(p.createdBy = :userId OR po.ownerUserId = :userId)', { userId: viewerUserId })
             .orderBy('p.updatedAt', 'DESC')
             .skip(offset)
             .take(limit);
+        if (status) {
+            const key = String(status).toLowerCase();
+            // accept human-friendly values (e.g., 'pending_payment')
+            qb.andWhere('LOWER(p.status) = :status', { status: key });
+        }
         const [rows, total] = await qb.getManyAndCount();
         const data = rows.map((p) => ({
             id: p.id,
             projectTitle: (p as any).data?.projectTitle ?? null,
             created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
-            status: p.status === ProjectStatus.DRAFT ? 'Draft' : 'Submitted',
+            status: String(p.status),
             data: p.data,
             businessId: p.businessId,
             userId: p.createdBy,
@@ -187,6 +192,53 @@ export class MySkbProjectService {
             created_at: project.createdAt ? project.createdAt.toISOString() : undefined,
             data: project.data,
             owners: ownersFormatted,
+        };
+    }
+
+    // ============== Admin operations ==============
+    async adminList(status?: ProjectStatus | string, limit = 20, offset = 0) {
+        const qb = this.repo.createQueryBuilder('p').orderBy('p.updatedAt', 'DESC').skip(offset).take(limit);
+        if (status) {
+            // accept case-insensitive string
+            const key = String(status).toLowerCase() as keyof typeof ProjectStatus;
+            const val = (ProjectStatus as any)[key?.toUpperCase?.() || ''] || status;
+            qb.where('p.status = :status', { status: val });
+        }
+        const [rows, total] = await qb.getManyAndCount();
+        const data = rows.map((p) => ({
+            id: p.id,
+            projectTitle: (p as any).data?.projectTitle ?? null,
+            created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
+            status: String(p.status),
+            data: p.data,
+            businessId: p.businessId,
+            userId: p.createdBy,
+        }));
+        return { data, total, limit, offset };
+    }
+
+    async review(id: number, reviewerUserId: number, status: 'Approved' | 'Rejected' | 'approved' | 'rejected', reason?: string) {
+        const project = await this.repo.findOne({ where: { id } });
+        if (!project) throw new NotFoundException('Project not found');
+        const lower = String(status).toLowerCase();
+    let next: ProjectStatus;
+    if (lower === 'approved') next = ProjectStatus.PENDING_PAYMENT; // move to pending payment after admin approval
+        else if (lower === 'rejected') next = ProjectStatus.REJECTED;
+        else throw new ForbiddenException('Invalid status');
+
+        // Persist review info into data._review
+        const now = new Date();
+        const data = project.data || {};
+        const audit = { reviewerUserId, status: next, reason, at: now.toISOString() };
+    project.data = { ...data, _review: audit };
+        project.status = next;
+        const saved = await this.repo.save(project);
+        return {
+            id: saved.id,
+            status: saved.status,
+            reviewed_at: audit.at,
+            reviewer_user_id: reviewerUserId,
+            reason,
         };
     }
 }

@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpsertDraftDto, SubmitProjectDto, ListDraftsQueryDto, ListProjectsQueryDto, SubmitDraftByIdDto } from './dto/project.dto';
 import { MySkbProjectService } from './project.service';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @ApiTags('MySKB Project')
 @ApiBearerAuth()
@@ -39,8 +41,37 @@ export class MySkbProjectController {
         const { limit = 20, offset = 0, viewerUserId, status } = query;
         const fallbackUserId: number | undefined = req.user?.userId || req.user?.id || req.user?.sub;
         const effectiveViewer = viewerUserId ?? fallbackUserId;
-        const result = await this.service.list(Number(effectiveViewer), limit, offset);
+        const result = await this.service.list(Number(effectiveViewer), limit, offset, undefined, status as any);
         return result;
+    }
+
+    // ============== Admin endpoints ==============
+    // List projects for admin by status (e.g., submitted)
+    @Get('admin')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    async adminList(
+        @Query('status') status?: string,
+        @Query('limit') limit?: string,
+        @Query('offset') offset?: string,
+    ) {
+        const lim = limit ? parseInt(limit, 10) : 20;
+        const off = offset ? parseInt(offset, 10) : 0;
+        return this.service.adminList(status as any, lim, off);
+    }
+
+    // Review a submitted project: approve or reject with optional reason
+    @Patch(':id/review')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    async review(
+        @Param('id') id: string,
+        @Body('status') status: 'Approved' | 'Rejected' | 'approved' | 'rejected',
+        @Body('reason') reason: string | undefined,
+        @Req() req: any,
+    ) {
+        const reviewerId: number = req.user?.userId || req.user?.id || req.user?.sub;
+        return this.service.review(parseInt(id, 10), reviewerId, status as any, reason);
     }
 
     // Get a single project by id (includes owners with user name and ownership type)
