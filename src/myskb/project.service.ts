@@ -5,7 +5,7 @@ import { MySkbProject, ProjectStatus } from './project.entity';
 import { Business } from '../business/registration/business.entity';
 import { MySkbProjectOwner } from './project-owner.entity';
 import { User } from '../users/user.entity';
-import { MySkbOwnership } from './ownership.entity';
+import { MySkbOwnership, OwnershipStatus } from './ownership.entity';
 
 @Injectable()
 export class MySkbProjectService {
@@ -16,6 +16,8 @@ export class MySkbProjectService {
         private readonly businessRepo: Repository<Business>,
         @InjectRepository(MySkbProjectOwner)
         private readonly ownerRepo: Repository<MySkbProjectOwner>,
+        @InjectRepository(MySkbOwnership)
+        private readonly ownershipRepo: Repository<MySkbOwnership>,
     ) { }
 
     async upsertDraft(
@@ -126,12 +128,21 @@ export class MySkbProjectService {
     }
 
     async list(viewerUserId: number, limit = 20, offset = 0, businessId?: number, status?: ProjectStatus | string) {
-        const qb = this.repo.createQueryBuilder('p')
-            .leftJoin(MySkbProjectOwner, 'po', 'po.projectId = p.id')
-            .where('(p.createdBy = :userId OR po.ownerUserId = :userId)', { userId: viewerUserId })
-            .orderBy('p.updatedAt', 'DESC')
-            .skip(offset)
-            .take(limit);
+        const qb = this.repo.createQueryBuilder('p');
+
+        const hasBid = businessId && !Number.isNaN(Number(businessId));
+
+        if (hasBid) {
+            // Consultant/business owner with approved ownership: list all for the business
+            qb.where('p.businessId = :bid', { bid: Number(businessId) });
+        } else {
+            // Default: only creator or explicit project owner
+            qb.leftJoin(MySkbProjectOwner, 'po', 'po.projectId = p.id')
+                .where('(p.createdBy = :userId OR po.ownerUserId = :userId)', { userId: viewerUserId });
+            if (hasBid) qb.andWhere('p.businessId = :bid', { bid: Number(businessId) });
+        }
+
+        qb.orderBy('p.updatedAt', 'DESC').skip(offset).take(limit);
         if (status) {
             const key = String(status).toLowerCase();
             // accept human-friendly values (e.g., 'pending_payment')
