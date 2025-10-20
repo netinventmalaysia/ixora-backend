@@ -10,6 +10,11 @@ export class MySkbProjectOwner {
     @Column({ type: 'int' })
     projectId: number;
 
+    // Denormalized for easy access/filtering without joining projects
+    @Index()
+    @Column({ type: 'int' })
+    businessId: number;
+
     @Index()
     @Column({ type: 'int' })
     ownerUserId: number;

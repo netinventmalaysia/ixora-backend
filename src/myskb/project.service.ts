@@ -68,13 +68,13 @@ export class MySkbProjectService {
 
         const submission = this.repo.create({ businessId, createdBy: createdByUserId, status: ProjectStatus.SUBMITTED, data: payload });
         await this.repo.save(submission);
-        await this.insertOwnerInformation(submission.id, ownersUserIds);
+        await this.insertOwnerInformation(submission.id, submission.businessId, ownersUserIds);
         return submission;
     }
 
-    async insertOwnerInformation(projectId: number, ownerUserIds: number[]) {
+    async insertOwnerInformation(projectId: number, businessId: number, ownerUserIds: number[]) {
         if (!Array.isArray(ownerUserIds) || !ownerUserIds.length) return;
-        const values = ownerUserIds.map((uid) => ({ projectId, ownerUserId: uid }));
+        const values = ownerUserIds.map((uid) => ({ projectId, businessId, ownerUserId: uid }));
         await this.ownerRepo.createQueryBuilder().insert().into(MySkbProjectOwner).values(values).orIgnore().execute();
     }
 
@@ -183,6 +183,7 @@ export class MySkbProjectService {
         // Load owners with names and ownership type if any
         const owners = await this.ownerRepo.createQueryBuilder('po')
             .leftJoin(User, 'u', 'u.id = po.ownerUserId')
+            // businessId is now denormalized on project_owner; we still constrain to project.businessId for safety
             .leftJoin(MySkbOwnership, 'own', 'own.userId = po.ownerUserId AND own.businessId = :bid', { bid: project.businessId })
             .select([
                 'po.ownerUserId AS user_id',
