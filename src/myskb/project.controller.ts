@@ -38,8 +38,7 @@ export class MySkbProjectController {
     // Get all projects by viewer
     @Get()
     async list(@Query() query: ListProjectsQueryDto, @Req() req: any) {
-        const { limit = 20, offset = 0, viewerUserId, status } = query;
-        const businessId: number | undefined = (query as any)?.business_id !== undefined ? Number((query as any).business_id) : undefined;
+        const { limit = 20, offset = 0, viewerUserId, businessId, status } = query;
         console.log('businessId:', businessId);
         const fallbackUserId: number | undefined = req.user?.userId || req.user?.id || req.user?.sub;
         const effectiveViewer = viewerUserId ?? fallbackUserId;
@@ -86,10 +85,13 @@ export class MySkbProjectController {
 
     // Get a single project by id (includes owners with user name and ownership type)
     @Get(':id')
-    async getOne(@Param('id') id: string, @Req() req: any, @Query('viewerUserId') viewerUserId?: string) {
+    async getOne(@Param('id') id: string, @Req() req: any, @Query('viewerUserId') viewerUserId?: string, @Query('businessId') businessId?: number) {
         const jwtViewer: number | undefined = req.user?.userId || req.user?.id || req.user?.sub;
-        const effective = (viewerUserId !== undefined && viewerUserId !== null) ? Number(viewerUserId) : jwtViewer;
-        const result = await this.service.getByIdWithOwners(Number(id), effective);
+        const viewerId = (viewerUserId !== undefined && viewerUserId !== null) ? Number(viewerUserId) : jwtViewer;
+        //check if busunessId is provided
+        console.log('businessId from query:', businessId);
+
+        const result = await this.service.getByIdWithOwners(Number(id), viewerId, businessId);
         return result;
     }
 }

@@ -92,7 +92,12 @@ export class ListProjectsQueryDto extends ListDraftsQueryDto {
     @IsIn(['draft', 'submitted', 'approved', 'pending_payment', 'paid', 'rejected', 'expired', 'pending_renewal', 'project_completed', 'project_onhold', 'project_cancelled'])
     status?: string;
 
-    // required to have userId; coerce from querystring
+    @IsOptional()
+    @Type(() => Number)
+    @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+    @IsInt()
+    businessId: number;
+
     @Type(() => Number)
     @Transform(({ value }) => (value !== undefined ? Number(value) : value))
     @IsInt()

@@ -161,7 +161,7 @@ export class MySkbProjectService {
         return { data, total, limit, offset };
     }
 
-    async getByIdWithOwners(id: number, viewerUserId?: number) {
+    async getByIdWithOwners(id: number, viewerUserId?: number, businessId?: number) {
         const qb = this.repo.createQueryBuilder('p')
             .leftJoin(MySkbProjectOwner, 'po', 'po.projectId = p.id')
             .leftJoin(User, 'u', 'u.id = po.ownerUserId')
@@ -169,6 +169,11 @@ export class MySkbProjectService {
         // Optional access check if viewer provided: must be creator or one of owners
         if (viewerUserId) {
             qb.andWhere('(p.createdBy = :viewer OR po.ownerUserId = :viewer)', { viewer: viewerUserId });
+        }
+
+        if (businessId) {
+            console.log('Using business ID from URL:', businessId);
+            qb.orWhere('p.businessId = :bid', { bid: Number(businessId) });
         }
         const project = await qb.getOne();
         if (!project) throw new NotFoundException({ message: 'Project not found' });
