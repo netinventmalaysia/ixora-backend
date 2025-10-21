@@ -15,6 +15,7 @@ export class MySkbProjectController {
 
     @Post('draft')
     async saveDraft(@Body() dto: UpsertDraftDto, @Req() req: any) {
+        console.log('Saving draft for business ID save as draft:', dto.business_id);
         const userId: number = req.user?.userId || req.user?.id; // depending on jwt payload
         const draft = await this.service.upsertDraft(dto.business_id, userId, dto.data);
         return { id: draft.id, status: draft.status, updated_at: draft.updatedAt };
@@ -30,6 +31,7 @@ export class MySkbProjectController {
     // Update an existing draft by id
     @Put('draft/:id')
     async updateDraft(@Param('id') id: string, @Body() dto: UpsertDraftDto, @Req() req: any) {
+        console.log('Updating draft for business ID for draft ID:', dto.business_id);
         const userId: number = req.user?.userId || req.user?.id;
         const saved = await this.service.asAsDraft(parseInt(id, 10), dto.business_id, userId, dto.data);
         return { id: saved.id, status: saved.status, updated_at: saved.updatedAt };

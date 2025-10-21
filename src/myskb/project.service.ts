@@ -39,22 +39,12 @@ export class MySkbProjectService {
             // fall through to create/reuse a draft if not found
         }
 
-        // Otherwise, reuse the latest draft for this business+user if it exists
-        let draft = await this.repo.findOne({
-            where: { businessId, createdBy, status: ProjectStatus.DRAFT },
-            order: { updatedAt: 'DESC', id: 'DESC' }, // requires UpdateDateColumn
+        const draft = this.repo.create({
+            businessId,
+            createdBy,
+            status: ProjectStatus.DRAFT,
+            data,
         });
-
-        if (draft) {
-            draft.data = data;
-        } else {
-            draft = this.repo.create({
-                businessId,
-                createdBy,
-                status: ProjectStatus.DRAFT,
-                data,
-            });
-        }
 
         return await this.repo.save(draft);
     }
