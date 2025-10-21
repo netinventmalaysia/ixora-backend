@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { MySkbProject, ProjectStatus } from './project.entity';
 import { Business } from '../business/registration/business.entity';
 import { MySkbProjectOwner } from './project-owner.entity';
@@ -139,15 +139,25 @@ export class MySkbProjectService {
             qb.andWhere('LOWER(p.status) = :status', { status: key });
         }
         const [rows, total] = await qb.getManyAndCount();
-        const data = rows.map((p) => ({
-            id: p.id,
-            projectTitle: (p as any).data?.projectTitle ?? null,
-            created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
-            status: String(p.status),
-            data: p.data,
-            businessId: p.businessId,
-            userId: p.createdBy,
-        }));
+        // Attach business info without per-row queries
+        const bizIds = Array.from(new Set(rows.map((p) => p.businessId).filter((v) => typeof v === 'number')));
+        const businesses = bizIds.length ? await this.businessRepo.findBy({ id: In(bizIds as number[]) }) : [];
+        const bizMap = new Map<number, any>();
+        for (const b of businesses) bizMap.set((b as any).id, b);
+        const data = rows.map((p) => {
+            const b = bizMap.get(p.businessId);
+            const businessName = b ? ((b as any).name || (b as any).companyName || (b as any).company_name || (b as any).registration_name) : undefined;
+            return {
+                id: p.id,
+                projectTitle: (p as any).data?.projectTitle ?? null,
+                created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
+                status: String(p.status),
+                data: p.data,
+                businessId: p.businessId,
+                business: businessName ? { id: p.businessId, name: businessName } : { id: p.businessId },
+                userId: p.createdBy,
+            };
+        });
         return { data, total, limit, offset };
     }
 
@@ -222,15 +232,25 @@ export class MySkbProjectService {
             qb.where('p.status = :status', { status: val });
         }
         const [rows, total] = await qb.getManyAndCount();
-        const data = rows.map((p) => ({
-            id: p.id,
-            projectTitle: (p as any).data?.projectTitle ?? null,
-            created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
-            status: String(p.status),
-            data: p.data,
-            businessId: p.businessId,
-            userId: p.createdBy,
-        }));
+        // Attach business info without per-row queries
+        const bizIds = Array.from(new Set(rows.map((p) => p.businessId).filter((v) => typeof v === 'number')));
+        const businesses = bizIds.length ? await this.businessRepo.findBy({ id: In(bizIds as number[]) }) : [];
+        const bizMap = new Map<number, any>();
+        for (const b of businesses) bizMap.set((b as any).id, b);
+        const data = rows.map((p) => {
+            const b = bizMap.get(p.businessId);
+            const businessName = b ? ((b as any).name || (b as any).companyName || (b as any).company_name || (b as any).registration_name) : undefined;
+            return {
+                id: p.id,
+                projectTitle: (p as any).data?.projectTitle ?? null,
+                created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
+                status: String(p.status),
+                data: p.data,
+                businessId: p.businessId,
+                business: businessName ? { id: p.businessId, name: businessName } : { id: p.businessId },
+                userId: p.createdBy,
+            };
+        });
         return { data, total, limit, offset };
     }
 
