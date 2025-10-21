@@ -85,13 +85,23 @@ export class MySkbProjectController {
 
     // Get a single project by id (includes owners with user name and ownership type)
     @Get(':id')
-    async getOne(@Param('id') id: string, @Req() req: any, @Query('viewerUserId') viewerUserId?: string, @Query('businessId') businessId?: number) {
+    async getOne(
+        @Param('id') id: string,
+        @Req() req: any,
+        @Query('viewerUserId') viewerUserId?: string,
+        @Query('businessId') businessId?: number,
+        @Query('status') status?: string,
+    ) {
         const jwtViewer: number | undefined = req.user?.userId || req.user?.id || req.user?.sub;
         const viewerId = (viewerUserId !== undefined && viewerUserId !== null) ? Number(viewerUserId) : jwtViewer;
-        //check if busunessId is provided
-        console.log('businessId from query:', businessId);
 
+        // logging for debug
+        console.log('projectId from query:', id);
+        console.log('businessId from query:', businessId);
+        console.log('viewerUserId from query:', viewerUserId);
+        console.log('status from query:', status);
         const result = await this.service.getByIdWithOwners(Number(id), viewerId, businessId);
+        console.log('Fetched project:', result);
         return result;
     }
 }
