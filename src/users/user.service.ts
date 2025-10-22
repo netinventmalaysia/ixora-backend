@@ -77,5 +77,41 @@ export class UserService {
         Object.assign(user, dto);
         return this.userRepository.save(user);
     }
+
+    // Admin: list users with optional search/role and pagination
+    async adminListUsers(params: { search?: string; role?: UserRole; limit?: number; offset?: number }) {
+        const { search, role, limit = 20, offset = 0 } = params || {} as any;
+        console.log('Admin listing users with params:', params);
+            const qb = this.userRepository.createQueryBuilder('u');
+            // Select only non-sensitive fields
+            qb.select([
+                'u.id',
+                'u.email',
+                'u.firstName',
+                'u.lastName',
+                'u.isActive',
+                'u.isEmailVerified',
+                'u.role',
+                'u.lastLogin',
+                'u.createdAt',
+            ]);
+        if (search) {
+            qb.andWhere('(u.email LIKE :q OR u.firstName LIKE :q OR u.lastName LIKE :q)', { q: `%${search}%` });
+        }
+        if (role) {
+            qb.andWhere('u.role = :role', { role });
+        }
+        qb.orderBy('u.id', 'DESC');
+        qb.skip(offset).take(limit);
+        const [data, total] = await qb.getManyAndCount();
+        return { data, total, limit, offset };
+    }
+
+    // Admin: update user role
+    async adminUpdateUserRole(id: number, role: UserRole) {
+        const user = await this.findById(id);
+        user.role = role;
+        return this.userRepository.save(user);
+    }
 }
 
