@@ -82,19 +82,19 @@ export class UserService {
     async adminListUsers(params: { search?: string; role?: UserRole; limit?: number; offset?: number }) {
         const { search, role, limit = 20, offset = 0 } = params || {} as any;
         console.log('Admin listing users with params:', params);
-            const qb = this.userRepository.createQueryBuilder('u');
-            // Select only non-sensitive fields
-            qb.select([
-                'u.id',
-                'u.email',
-                'u.firstName',
-                'u.lastName',
-                'u.isActive',
-                'u.isEmailVerified',
-                'u.role',
-                'u.lastLogin',
-                'u.createdAt',
-            ]);
+        const qb = this.userRepository.createQueryBuilder('u');
+        // Select only non-sensitive fields
+        qb.select([
+            'u.id',
+            'u.email',
+            'u.firstName',
+            'u.lastName',
+            'u.isActive',
+            'u.isEmailVerified',
+            'u.role',
+            'u.lastLogin',
+            'u.createdAt',
+        ]);
         if (search) {
             qb.andWhere('(u.email LIKE :q OR u.firstName LIKE :q OR u.lastName LIKE :q)', { q: `%${search}%` });
         }
