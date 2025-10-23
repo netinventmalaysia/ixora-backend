@@ -33,6 +33,11 @@ export class MySkbProjectService {
             });
 
             if (existing) {
+                // persist coordinates if provided at top-level or within data
+                const lat = (data as any)?.latitude ?? (data as any)?.lat;
+                const lng = (data as any)?.longitude ?? (data as any)?.lng;
+                if (lat !== undefined) (existing as any).latitude = lat;
+                if (lng !== undefined) (existing as any).longitude = lng;
                 existing.data = data;
                 return await this.repo.save(existing);
             }
@@ -44,6 +49,8 @@ export class MySkbProjectService {
             createdBy,
             status: ProjectStatus.DRAFT,
             data,
+            latitude: (data as any)?.latitude ?? (data as any)?.lat,
+            longitude: (data as any)?.longitude ?? (data as any)?.lng,
         });
 
         return await this.repo.save(draft);
@@ -56,7 +63,14 @@ export class MySkbProjectService {
     async submit(businessId: number, createdByUserId: number, ownersUserIds: number[], data?: Record<string, any>) {
         let payload = data;
 
-        const submission = this.repo.create({ businessId, createdBy: createdByUserId, status: ProjectStatus.SUBMITTED, data: payload });
+        const submission = this.repo.create({
+            businessId,
+            createdBy: createdByUserId,
+            status: ProjectStatus.SUBMITTED,
+            data: payload,
+            latitude: (payload as any)?.latitude ?? (payload as any)?.lat,
+            longitude: (payload as any)?.longitude ?? (payload as any)?.lng,
+        });
         await this.repo.save(submission);
         await this.insertOwnerInformation(submission.id, submission.businessId, ownersUserIds);
         return submission;
@@ -80,6 +94,10 @@ export class MySkbProjectService {
                 where: { id: projectId, businessId, createdBy, status: ProjectStatus.DRAFT },
             });
             if (existing) {
+                const lat = (data as any)?.latitude ?? (data as any)?.lat;
+                const lng = (data as any)?.longitude ?? (data as any)?.lng;
+                if (lat !== undefined) (existing as any).latitude = lat;
+                if (lng !== undefined) (existing as any).longitude = lng;
                 existing.data = data;
                 return await this.repo.save(existing);
             }
@@ -91,6 +109,8 @@ export class MySkbProjectService {
             createdBy,
             status: ProjectStatus.DRAFT,
             data,
+            latitude: (data as any)?.latitude ?? (data as any)?.lat,
+            longitude: (data as any)?.longitude ?? (data as any)?.lng,
         });
 
         return await this.repo.save(draft);
@@ -112,7 +132,9 @@ export class MySkbProjectService {
             status: 'Draft',
             data: p.data,
             businessId: p.businessId,
-            userId: p.createdBy
+            userId: p.createdBy,
+            latitude: (p as any).latitude ?? null,
+            longitude: (p as any).longitude ?? null,
         }));
         return { data, total, limit, offset };
     }
@@ -156,6 +178,8 @@ export class MySkbProjectService {
                 businessId: p.businessId,
                 business: businessName ? { id: p.businessId, name: businessName } : { id: p.businessId },
                 userId: p.createdBy,
+                latitude: (p as any).latitude ?? null,
+                longitude: (p as any).longitude ?? null,
             };
         });
         return { data, total, limit, offset };
@@ -219,6 +243,8 @@ export class MySkbProjectService {
             created_at: project.createdAt ? project.createdAt.toISOString() : undefined,
             data: project.data,
             owners: ownersFormatted,
+            latitude: (project as any).latitude ?? null,
+            longitude: (project as any).longitude ?? null,
         };
     }
 
@@ -249,6 +275,8 @@ export class MySkbProjectService {
                 businessId: p.businessId,
                 business: businessName ? { id: p.businessId, name: businessName } : { id: p.businessId },
                 userId: p.createdBy,
+                latitude: (p as any).latitude ?? null,
+                longitude: (p as any).longitude ?? null,
             };
         });
         return { data, total, limit, offset };

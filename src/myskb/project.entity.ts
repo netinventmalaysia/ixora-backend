@@ -30,6 +30,13 @@ export class MySkbProject {
     @Column({ type: 'enum', enum: ProjectStatus, default: ProjectStatus.DRAFT })
     status: ProjectStatus;
 
+    // Geo coordinates (optional)
+    @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+    latitude?: string | null;
+
+    @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+    longitude?: string | null;
+
     // Store full project form payload
     @Column({ type: 'json' })
     data: any;
