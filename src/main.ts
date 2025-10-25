@@ -54,6 +54,11 @@ async function bootstrap() {
     'GET /business/owner/decline-duplicate',
     'OPTIONS /business/owner/approve-duplicate',
     'OPTIONS /business/owner/decline-duplicate',
+    // WhatsApp OTP endpoints (public, for mobile/3rd-party use)
+    'POST /whatsapp/otp/request',
+    'POST /whatsapp/otp/verify',
+    'GET /whatsapp/webhook',
+    'POST /whatsapp/webhook',
   ]);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
