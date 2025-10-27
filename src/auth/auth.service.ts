@@ -160,8 +160,7 @@ export class AuthService {
     }
 
     // Non-consuming validation for email verification token
-    async validateEmailToken(token: string): Promise<{ userId: number; email: string; expiresAt: Date }>
-    {
+    async validateEmailToken(token: string): Promise<{ userId: number; email: string; expiresAt: Date }> {
         const user = await this.userService.findByVerificationToken(token);
         if (!user) throw new NotFoundException('Invalid verification token');
         const now = new Date();
