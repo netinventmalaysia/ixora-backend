@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../users/user.service';
 import * as bcrypt from 'bcryptjs';
@@ -133,7 +133,7 @@ export class AuthService {
 
     async verifyEmail(token: string): Promise<User> {
         const user = await this.userService.findByVerificationToken(token);
-        if (!user) throw new UnauthorizedException('Invalid verification token');
+        if (!user) throw new BadRequestException('Invalid verification token');
         const now = new Date();
         if (!user.verificationTokenExpires || user.verificationTokenExpires < now) {
             // Auto-resend a new verification email if expired
@@ -149,7 +149,7 @@ export class AuthService {
                 // eslint-disable-next-line no-console
                 console.error('[verifyEmail] Failed to resend verification email:', e);
             }
-            throw new UnauthorizedException('Verification token expired. A new verification email has been sent.');
+            throw new HttpException('Verification token expired. A new verification email has been sent.', HttpStatus.GONE);
         }
         user.isEmailVerified = true;
         user.isAccountVerified = true;
@@ -157,5 +157,28 @@ export class AuthService {
         user.verificationTokenExpires = null as any;
         await this.userService.save(user);
         return user;
+    }
+
+    // Non-consuming validation for email verification token
+    async validateEmailToken(token: string): Promise<{ userId: number; email: string; expiresAt: Date }>
+    {
+        const user = await this.userService.findByVerificationToken(token);
+        if (!user) throw new NotFoundException('Invalid verification token');
+        const now = new Date();
+        if (!user.verificationTokenExpires || user.verificationTokenExpires < now) {
+            // Optionally resend a new email here, but do not consume the existing token in this validation path
+            try {
+                const newToken = uuidv4();
+                const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                user.verificationToken = newToken;
+                user.verificationTokenExpires = newExpiry;
+                await this.userService.save(user);
+                await this.mailService.sendVerificationEmail(user.email, newToken);
+            } catch (e) {
+                console.error('[validateEmailToken] Failed to resend verification email:', e);
+            }
+            throw new HttpException('Verification token expired. A new verification email has been sent.', HttpStatus.GONE);
+        }
+        return { userId: user.id, email: user.email, expiresAt: user.verificationTokenExpires };
     }
 }

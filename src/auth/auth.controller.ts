@@ -109,12 +109,12 @@ export class AuthController {
     }
 
     @Get('verify-email/validate')
-    @ApiOperation({ summary: 'Verify email by token' })
-    @ApiResponse({ status: 200, description: 'Email verified successfully' })
+    @ApiOperation({ summary: 'Validate email verification token (non-consuming)' })
+    @ApiResponse({ status: 200, description: 'Token is valid (not consumed)' })
     async verifyEmail(@Query('token') token: string) {
         if (!token) throw new HttpException({ error: 'Missing token' }, HttpStatus.BAD_REQUEST);
-        const result = await this.authService.verifyEmail(token);
-        return { message: 'Email verified successfully', userId: result.id, email: result.email };
+        const result = await this.authService.validateEmailToken(token);
+        return { message: 'Token valid', userId: result.userId, email: result.email, expiresAt: result.expiresAt };
     }
 
     @Post('verify-email/confirm')
