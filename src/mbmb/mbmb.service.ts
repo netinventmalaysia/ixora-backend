@@ -54,14 +54,23 @@ export class MbmbService {
     path: string,
     options?: { params?: any; data?: any; headers?: any; config?: AxiosRequestConfig },
   ): Promise<T> {
+    const baseURL = this.config.get('MBMB_API_BASE');
+    console.log('[MbmbService] request -> method:', method);
+    console.log('[MbmbService] request -> baseURL:', baseURL);
+    console.log('[MbmbService] request -> path:', path);
+    console.log('[MbmbService] request -> Full URL:', baseURL + path);
     try {
       const response = await lastValueFrom(
         this.http.request<T>({ method, url: path, params: options?.params, data: options?.data, headers: options?.headers, ...options?.config }),
       );
+      console.log('[MbmbService] request -> Response status:', response.status);
+      console.log('[MbmbService] request -> Response data:', response.data);
       return response.data;
     } catch (err: any) {
       const status = err?.response?.status || HttpStatus.BAD_GATEWAY;
       const details = err?.response?.data;
+      console.error('[MbmbService] request -> Error status:', status);
+      console.error('[MbmbService] request -> Error details:', details);
       let message: string;
       if (typeof details === 'string') message = details;
       else if (details?.message && typeof details.message === 'string') message = details.message;
@@ -92,6 +101,10 @@ export class MbmbService {
   async postPublicResource<T = any>(resourcePath: string, data?: any, withAuth: boolean = true): Promise<T> {
     const path = `/mbmb/public/api/${resourcePath}`;
     const headers = withAuth ? await this.getAuthHeaders() : undefined;
+    console.log('[MbmbService] postPublicResource -> path:', path);
+    console.log('[MbmbService] postPublicResource -> withAuth:', withAuth);
+    console.log('[MbmbService] postPublicResource -> headers:', headers);
+    console.log('[MbmbService] postPublicResource -> data:', JSON.stringify(data, null, 2));
     return this.post<T>(path, data, headers);
   }
 }

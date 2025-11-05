@@ -38,9 +38,11 @@ export class MbmbController {
      * Frontend calls: POST /mbmb/public/api/payment/submit with the required payload.
      * This forwards to MBMB: /mbmb/public/api/payment/submit
      */
+
+    // if success send payment type as "N"
     @Post('public/api/payment/submit')
     async postPaymentSubmit(@Body() body: any) {
-        return this.mbmb.postPublicResource('payment/submit', body);
+        return this.mbmb.postPublicResource('bill/online/insert', body);
     }
 
     // ---------- Outstanding bills (normalized) ----------

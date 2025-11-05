@@ -114,16 +114,23 @@ export class BillingService {
       TransactionBank: body.transactionBank,
       TransactionRefNo: body.transactionRefNo,
       TransactionAmount: body.transactionAmount,
-      OnlineTransactionAcct: {
-        orderNo: body.onlineTransactionAcct.orderNo,
-        jenis: body.onlineTransactionAcct.jenis,
-        no_akaun: body.onlineTransactionAcct.no_akaun,
-        amaun: body.onlineTransactionAcct.amaun,
-      },
+      OnlineTransactionAcct: body.onlineTransactionAcct.map((acct) => ({
+        order_no: acct.order_no,
+        jenis: acct.jenis,
+        no_akaun: acct.no_akaun,
+        amaun: acct.amaun,
+      })),
     };
 
     const resourcePath = process.env.MBMB_INSERT_RESOURCE || 'bill/online/insert';
-    return this.mbmb.postPublicResource(resourcePath, payload);
+    console.log('[BillingService] insertOnlineBill -> Calling MBMB API');
+    console.log('[BillingService] insertOnlineBill -> resourcePath:', resourcePath);
+    console.log('[BillingService] insertOnlineBill -> Full URL will be: /mbmb/public/api/' + resourcePath);
+    console.log('[BillingService] insertOnlineBill -> Payload:', JSON.stringify(payload, null, 2));
+    
+    const result = await this.mbmb.postPublicResource(resourcePath, payload);
+    console.log('[BillingService] insertOnlineBill -> MBMB response:', result);
+    return result;
   }
 
   // Create a billing with items in CREATED status
@@ -192,7 +199,50 @@ export class BillingService {
 
     billing.items?.forEach((it) => { it.status = billing.status; });
     await this.billingItemRepo.save(billing.items || []);
-    return this.billingRepo.save(billing);
+    await this.billingRepo.save(billing);
+
+    // If payment is successful, insert online bill to MBMB
+    console.log('[BillingService] handleMbmbCallback - paid:', paid, 'items count:', billing.items?.length || 0);
+    if (paid && billing.items && billing.items.length > 0) {
+      console.log('[BillingService] Preparing to insert online bill to MBMB for reference:', reference);
+      try {
+        // Map all billing items to OnlineTransactionAcct array
+        const insertPayload: InsertOnlineBillDto = {
+          orderNo: reference,
+          orderTime: (billing.paidAt || new Date()).toISOString(),
+          orderBank: dto.vendor_method || 'RazerPay',
+          orderAmount: Number(billing.paidAmount || billing.totalAmount),
+          orderStatus: 'C', // Completed
+          userId: String(billing.userId || '0'),
+          ipAddress: dto.extraP || '0.0.0.0',
+          buyerEmail: dto.domain || 'noreply@ixora.local',
+          transactionResponseCode: dto.error_code || '00',
+          transactionId: dto.tranID || undefined,
+          transactionTime: dto.paydate || undefined,
+          transactionBank: dto.channel || undefined,
+          transactionRefNo: dto.appcode || undefined,
+          transactionAmount: billing.paidAmount ? Number(billing.paidAmount) : undefined,
+          onlineTransactionAcct: billing.items.map((item) => ({
+            order_no: item.order_no,
+            jenis: item.jenis,
+            no_akaun: item.no_akaun,
+            amaun: Number(item.amaun),
+          })),
+        };
+        console.log('[BillingService] insertOnlineBill payload:', JSON.stringify(insertPayload, null, 2));
+        const result = await this.insertOnlineBill(insertPayload);
+        console.log('[BillingService] insertOnlineBill result:', result);
+        console.log('[BillingService] Successfully inserted online bill to MBMB for reference:', reference);
+      } catch (insertErr: any) {
+        // Log error but don't fail the callback
+        console.error('[BillingService] Failed to insert online bill to MBMB:', insertErr);
+        console.error('[BillingService] Error details:', insertErr?.response?.data || insertErr?.message || insertErr);
+      }
+    } else {
+      console.log('[BillingService] Skipping insert online bill - condition not met');
+    }
+
+    return billing;
   }
 
   // Submit payment via MBMB and get redirect URL for Razer

@@ -1,9 +1,10 @@
-import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class OnlineTransactionAcctDto {
   @IsString()
   @IsNotEmpty()
-  orderNo: string;
+  order_no: string;
 
   @IsString()
   @IsNotEmpty()
@@ -33,7 +34,7 @@ export class InsertOnlineBillDto {
   orderBank: string; // vendor receipt id
 
   @IsNumber()
-  orderAmount: number; // must equal OnlineTransactionAcct.amaun
+  orderAmount: number; // must equal sum of OnlineTransactionAcct items
 
   @IsString()
   @IsIn(['C', 'N'])
@@ -75,6 +76,8 @@ export class InsertOnlineBillDto {
   @IsNumber()
   transactionAmount?: number;
 
-  @IsObject()
-  onlineTransactionAcct: OnlineTransactionAcctDto;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OnlineTransactionAcctDto)
+  onlineTransactionAcct: OnlineTransactionAcctDto[];
 }
