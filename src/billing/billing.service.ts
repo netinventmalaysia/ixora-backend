@@ -184,7 +184,7 @@ export class BillingService {
       skey: dto.skey,
     }));
     const reference = dto.orderid;
-    const billing = await this.billingRepo.findOne({ where: { reference }, relations: ['items'] });
+    const billing = await this.billingRepo.findOne({ where: { reference }, relations: ['items', 'user'] });
     if (!billing) throw new NotFoundException('Billing not found');
 
     // Normalize status: treat 'Paid', 'N', '00', '1' as paid
@@ -210,12 +210,12 @@ export class BillingService {
         const insertPayload: InsertOnlineBillDto = {
           orderNo: reference,
           orderTime: (billing.paidAt || new Date()).toISOString(),
-          orderBank: dto.vendor_method || 'RazerPay',
+          orderBank: (dto.vendor_method || 'RazerPay').toUpperCase(), // MBMB expects uppercase
           orderAmount: Number(billing.paidAmount || billing.totalAmount),
-          orderStatus: 'N', // Paid
+          orderStatus: 'N', // N = Paid/Success in MBMB
           userId: String(billing.userId || '0'),
-          ipAddress: dto.extraP || '0.0.0.0',
-          buyerEmail: dto.domain || 'noreply@ixora.local',
+          ipAddress: '127.0.0.1', // Use default IP address, not extraP which contains token JSON
+          buyerEmail: billing.user?.email || dto.domain || 'noreply@ixora.local',
           transactionResponseCode: dto.error_code || '00',
           transactionId: dto.tranID || undefined,
           transactionTime: dto.paydate || undefined,
