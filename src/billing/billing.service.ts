@@ -212,7 +212,7 @@ export class BillingService {
           orderTime: (billing.paidAt || new Date()).toISOString(),
           orderBank: dto.vendor_method || 'RazerPay',
           orderAmount: Number(billing.paidAmount || billing.totalAmount),
-          orderStatus: 'C', // Completed
+          orderStatus: 'N', // Paid
           userId: String(billing.userId || '0'),
           ipAddress: dto.extraP || '0.0.0.0',
           buyerEmail: dto.domain || 'noreply@ixora.local',
@@ -223,7 +223,7 @@ export class BillingService {
           transactionRefNo: dto.appcode || undefined,
           transactionAmount: billing.paidAmount ? Number(billing.paidAmount) : undefined,
           onlineTransactionAcct: billing.items.map((item) => ({
-            order_no: item.order_no,
+            order_no: reference, // Use main billing reference, not individual item order_no
             jenis: item.jenis,
             no_akaun: item.no_akaun,
             amaun: Number(item.amaun),
