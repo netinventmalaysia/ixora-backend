@@ -127,7 +127,7 @@ export class BillingService {
     console.log('[BillingService] insertOnlineBill -> resourcePath:', resourcePath);
     console.log('[BillingService] insertOnlineBill -> Full URL will be: /mbmb/public/api/' + resourcePath);
     console.log('[BillingService] insertOnlineBill -> Payload:', JSON.stringify(payload, null, 2));
-    
+
     const result = await this.mbmb.postPublicResource(resourcePath, payload);
     console.log('[BillingService] insertOnlineBill -> MBMB response:', result);
     return result;
