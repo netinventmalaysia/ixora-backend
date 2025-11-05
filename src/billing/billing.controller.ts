@@ -29,6 +29,22 @@ export class BillingController {
     }
   }
 
+  // GET /billings/receipt?reference=XXX -> get billing receipt/status by reference
+  @Get('receipt')
+  @ApiOperation({ summary: 'Get billing receipt by reference' })
+  async getReceipt(@Query('reference') reference?: string) {
+    if (!reference) {
+      throw new HttpException({ error: 'Missing reference parameter' }, HttpStatus.BAD_REQUEST);
+    }
+    try {
+      const data = await this.billing.findByReference(reference);
+      return { data };
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException({ error: err?.message || 'Failed to fetch billing receipt' }, HttpStatus.NOT_FOUND);
+    }
+  }
+
   // GET /billings/:reference -> poll billing/session status
   @Get(':reference')
   async getByReference(@Param('reference') reference: string) {
