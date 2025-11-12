@@ -26,7 +26,6 @@ export class UserService {
 
     async createUser(createUserDto: CreateUserDto): Promise<User> {
 
-        console.log('Creating user with data:', createUserDto);
         // 1) Prevent duplicate emails
         const existing = await this.findByEmail(createUserDto.email);
         if (existing) {
@@ -81,7 +80,6 @@ export class UserService {
     // Admin: list users with optional search/role and pagination
     async adminListUsers(params: { search?: string; role?: UserRole; limit?: number; offset?: number }) {
         const { search, role, limit = 20, offset = 0 } = params || {} as any;
-        console.log('Admin listing users with params:', params);
         const qb = this.userRepository.createQueryBuilder('u');
         // Select only non-sensitive fields
         qb.select([

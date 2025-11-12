@@ -19,8 +19,6 @@ export class BusinessController {
     @Roles('business', 'personal')
     async register(@Req() req: any, @Body() dto: CreateBusinessDto) {
         const userId = req.user.userId;
-        console.log('Registering business for user ID:', userId);
-        console.log('Business data:', dto);
         return this.businessService.create({ ...dto, userId });
     }
 

@@ -4,6 +4,11 @@ if (typeof globalThis.crypto === 'undefined') {
   (globalThis as any).crypto = crypto;
 }
 
+// Disable console.log in production/staging for security
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  console.log = () => {};
+}
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';

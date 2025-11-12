@@ -74,13 +74,11 @@ export class AuthController {
     getCsrfToken(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
         try {
             const token = req.csrfToken();
-            console.log('Generated CSRF token:', token);
             if (!token) {
                 console.error('CSRF token generation failed: Token is missing');
                 throw new Error('Failed to generate CSRF token');
             }
 
-            console.log('Generated CSRF token:', token);
             return { csrfToken: token };
         } catch (error) {
             console.error('CSRF token generation failed:', error);

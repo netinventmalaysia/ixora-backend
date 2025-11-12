@@ -123,13 +123,7 @@ export class BillingService {
     };
 
     const resourcePath = process.env.MBMB_INSERT_RESOURCE || 'bill/online/insert';
-    console.log('[BillingService] insertOnlineBill -> Calling MBMB API');
-    console.log('[BillingService] insertOnlineBill -> resourcePath:', resourcePath);
-    console.log('[BillingService] insertOnlineBill -> Full URL will be: /mbmb/public/api/' + resourcePath);
-    console.log('[BillingService] insertOnlineBill -> Payload:', JSON.stringify(payload, null, 2));
-
     const result = await this.mbmb.postPublicResource(resourcePath, payload);
-    console.log('[BillingService] insertOnlineBill -> MBMB response:', result);
     return result;
   }
 
@@ -202,9 +196,7 @@ export class BillingService {
     await this.billingRepo.save(billing);
 
     // If payment is successful, insert online bill to MBMB
-    console.log('[BillingService] handleMbmbCallback - paid:', paid, 'items count:', billing.items?.length || 0);
     if (paid && billing.items && billing.items.length > 0) {
-      console.log('[BillingService] Preparing to insert online bill to MBMB for reference:', reference);
       try {
         // Map all billing items to OnlineTransactionAcct array
         const insertPayload: InsertOnlineBillDto = {
@@ -229,17 +221,11 @@ export class BillingService {
             amaun: Number(item.amaun),
           })),
         };
-        console.log('[BillingService] insertOnlineBill payload:', JSON.stringify(insertPayload, null, 2));
-        const result = await this.insertOnlineBill(insertPayload);
-        console.log('[BillingService] insertOnlineBill result:', result);
-        console.log('[BillingService] Successfully inserted online bill to MBMB for reference:', reference);
+        await this.insertOnlineBill(insertPayload);
       } catch (insertErr: any) {
         // Log error but don't fail the callback
-        console.error('[BillingService] Failed to insert online bill to MBMB:', insertErr);
-        console.error('[BillingService] Error details:', insertErr?.response?.data || insertErr?.message || insertErr);
+        console.error('[BillingService] Failed to insert online bill to MBMB:', insertErr?.message);
       }
-    } else {
-      console.log('[BillingService] Skipping insert online bill - condition not met');
     }
 
     return billing;
@@ -258,16 +244,13 @@ export class BillingService {
       bill_desc: dto.billDesc,
       country: dto.country || 'MY',
     };
-    console.log('[BillingService] submitPayment -> resourcePath:', resourcePath);
-    console.log('[BillingService] submitPayment -> payload:', payload);
     let res: any;
     try {
       res = await this.mbmb.postPublicResource(resourcePath, payload);
     } catch (e: any) {
-      console.error('[BillingService] submitPayment -> MBMB error:', e?.response?.data ?? e?.message ?? e);
+      console.error('[BillingService] submitPayment -> MBMB error:', e?.message);
       throw e;
     }
-    console.log('[BillingService] submitPayment -> MBMB response:', res);
     // Expected: { status: true, url: 'https://...' }
     return { status: !!res?.status, url: res?.url };
   }

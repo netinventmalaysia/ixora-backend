@@ -109,10 +109,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Submit payment to MBMB (public)', description: 'No auth, CSRF-exempt', security: [] })
   async submitPayment(@Body() body: PaymentSubmitDto) {
     try {
-      // Debug: incoming request body
-      console.log('[BillingController] submitPayment request body:', body);
       const result = await this.billing.submitPayment(body);
-      console.log('[BillingController] submitPayment result:', result);
       return result;
     } catch (err: any) {
       // Debug: error details

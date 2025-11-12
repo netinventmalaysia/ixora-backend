@@ -21,7 +21,6 @@ export class UserController {
     @ApiBody({ type: CreateUserDto })
     @ApiOkResponse({ type: UserResponseDto })
     async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
-        console.log('Creating user with data:', createUserDto);
         const user = await this.userService.createUser(createUserDto);
         return plainToInstance(UserResponseDto, user);
     }
@@ -29,13 +28,11 @@ export class UserController {
 
     @Get('profile/:id')
     async getUserById(@Param('id') id: number) {
-        console.log('Fetching user by ID:', id);
         return this.userService.findById(id);
     }
 
     @Put('profile/:id')
     async updateUser(@Param('id') id: number, @Body() dto: UpdateUserDto) {
-        console.log('Updating user with ID:', id, 'Data:', dto);
         return this.userService.updateUser(id, dto);
     }
 
