@@ -87,8 +87,13 @@ export class MbmbController {
             billNo = String(billNo || '');
 
             let amount: number | undefined;
-            const amountCandidates = isCompound ? it?.amnterkini : it?.jumlah;
+      
+            const compoundAmount = it?.status_bayaran === 'OK' ? it?.amaun_diskaun : 0; 
 
+            const amountCandidates = isCompound
+                ? [compoundAmount]
+                : it?.jumlah;
+        
             for (const c of amountCandidates) {
                 if (c != null && c !== '') {
                     const n = typeof c === 'number' ? c : Number(c);
