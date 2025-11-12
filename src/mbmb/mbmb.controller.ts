@@ -4,6 +4,7 @@ import { MbmbService } from './mbmb.service';
 import { Request } from 'express';
 import { SimpleRateLimiter } from '../common/utils/rate-limit.util';
 import { AssessmentOutstandingQueryDto, BoothOutstandingQueryDto, CompoundOutstandingQueryDto, MiscOutstandingQueryDto, PublicBill } from './dto/outstanding.dto';
+import { PaymentType } from './mbmb.enums';
 
 @ApiTags('MBMB')
 @Controller('mbmb')
@@ -55,16 +56,15 @@ export class MbmbController {
         return present[0];
     }
 
-    private mapToBills(raw: any): PublicBill[] {
+    private mapToBills(raw: any, type: PaymentType): PublicBill[] {
         // Accept array or objects; try to normalize common MBMB shapes
         const arr = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
         return arr.map((it: any) => {
-            // Identify context by presence of distinctive fields
-            const isMisc = !!it?.no_akaun && !!it?.jumlah && !!it?.amaun_bil;
-            const isCompound = !!it?.nokmp || !!it?.noicmilik;
-            const isAssessment = !!it?.no_akaun && (!!it?.no_bil || !!it?.jumlah) && (it?.jenis === '01' || it?.cukai_sepenggal != null);
-            // Booth context (jenis '02' observed) with rental-related fields like sewa/petak/selenggara
-            const isBooth = it?.jenis === '02' && !!it?.no_akaun && (it?.sewa != null || it?.petak != null || it?.selenggara != null || it?.cukai_sepenggal != null);
+            // Defined by type
+            const isMisc = type === PaymentType.MISCELLANEOUS_BILLS;
+            const isCompound = type === PaymentType.COMPOUND;
+            const isAssessment = type === PaymentType.ASSESSMENT_TAX;
+            const isBooth = type === PaymentType.BOOTH_RENTAL;
 
             // id resolution
             let id = it?.id;
@@ -86,38 +86,16 @@ export class MbmbController {
             }
             billNo = String(billNo || '');
 
-            // amount resolution (prefer explicit totals for misc)
             let amount: number | undefined;
-            const amountCandidates = isAssessment
-                ? [it?.jumlah, it?.cukai, it?.cukai_sepenggal, it?.amount]
-                : isBooth
-                    // For booth: prefer jumlah if >0; else sewa; else cukai_sepenggal; else any non-zero maintenance related amounts.
-                    ? [
-                        it?.jumlah,
-                        it?.sewa,
-                        it?.cukai_sepenggal,
-                        it?.selenggara,
-                        it?.air,
-                        it?.denda,
-                        it?.amaun,
-                        it?.amount,
-                    ]
-                    : [
-                        it?.amount,
-                        it?.jumlah, // misc/assessment total
-                        it?.amaun_bil, // misc bill amount
-                        it?.total,
-                        it?.value,
-                        it?.amnterkini,
-                        it?.amnkmp,
-                        it?.amaun,
-                    ];
+            const amountCandidates = isCompound ? it?.amnterkini : it?.jumlah;
+
             for (const c of amountCandidates) {
                 if (c != null && c !== '') {
                     const n = typeof c === 'number' ? c : Number(c);
                     if (!isNaN(n)) { amount = n; if (n !== 0) break; }
                 }
             }
+
             if (typeof amount !== 'number' || isNaN(amount)) amount = 0;
 
             // due date
@@ -167,7 +145,7 @@ export class MbmbController {
         }
         // Correct upstream path is assessment-tax
         const raw = await this.mbmb.getPublicResource('assessment-tax', { columnName, columnValue });
-        return { data: this.mapToBills(raw) };
+        return { data: this.mapToBills(raw, PaymentType.ASSESSMENT_TAX) };
     }
 
     @Get('public/api/compound/outstanding')
@@ -189,7 +167,7 @@ export class MbmbController {
             throw new BadRequestException({ error: 'BadRequest', message: 'Provide either ic or compound_no' });
         }
         const raw = await this.mbmb.getPublicResource('compound', { columnName, columnValue });
-        return { data: this.mapToBills(raw) };
+        return { data: this.mapToBills(raw, PaymentType.COMPOUND) };
     }
 
     @Get('public/api/booth/outstanding')
@@ -209,7 +187,7 @@ export class MbmbController {
             throw new BadRequestException({ error: 'BadRequest', message: 'Provide either ic or account_no' });
         }
         const raw = await this.mbmb.getPublicResource('booth-rental', { columnName, columnValue });
-        return { data: this.mapToBills(raw) };
+        return { data: this.mapToBills(raw, PaymentType.BOOTH_RENTAL) };
     }
 
     @Get('public/api/misc/outstanding')
@@ -226,6 +204,6 @@ export class MbmbController {
             : { columnName: 'no_akaun', columnValue: accountNo };
         // New MBMB path for miscellaneous bills via generic columnName/columnValue
         const raw = await this.mbmb.getPublicResource('miscellaneous-bills', params);
-        return { data: this.mapToBills(raw) };
+        return { data: this.mapToBills(raw, PaymentType.MISCELLANEOUS_BILLS) };
     }
 }
