@@ -25,11 +25,15 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'https://ixora.mbmb.gov.my',
-      'http://localhost:3001'
+      'http://localhost:3001',
+      'http://localhost:3000'
     ],
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'Accept'],
+    exposedHeaders: ['x-csrf-token'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // 2) Cookies

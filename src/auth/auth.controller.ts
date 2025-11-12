@@ -22,10 +22,11 @@ export class AuthController {
     ) {
         const { accessToken, user } = await this.authService.login(dto.email, dto.password);
 
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging';
         res.cookie('auth_token', accessToken, {
             httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none', // ⚠️ Must be paired with secure: true in production
+            secure: isProduction, // Must be true in production when sameSite: 'none'
+            sameSite: isProduction ? 'none' : 'lax', // 'none' requires secure: true
             path: '/',
             maxAge: 60 * 60 * 1000, // 1 hour
         });
@@ -47,10 +48,11 @@ export class AuthController {
     async guestLogin(@Res({ passthrough: true }) res: Response) {
         const { accessToken, user } = await this.authService.guestLogin();
 
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging';
         res.cookie('auth_token', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             path: '/',
             maxAge: 60 * 60 * 1000,
         });
