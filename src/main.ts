@@ -26,7 +26,8 @@ async function bootstrap() {
     origin: [
       'https://ixora.mbmb.gov.my',
       'http://localhost:3001',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'http://localhost:8081'
     ],
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
