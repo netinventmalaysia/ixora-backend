@@ -18,9 +18,10 @@ import { MySkbOwnershipModule } from './myskb/ownership.module';
 import { MySkbProjectModule } from './myskb/project.module';
 import { PushModule } from './push/push.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { ReviewWorkflowModule } from './review-workflow/review-workflow.module';
 
 @Module({
-  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule, MbmbModule, BillingModule, VendorModule, MySkbOwnershipModule, MySkbProjectModule, PushModule, WhatsappModule,
+  imports: [UploadsModule, UserModule, AuthModule, MailModule, BusinessModule, SftpModule, TeamModule, HooksModule, MbmbModule, BillingModule, VendorModule, MySkbOwnershipModule, MySkbProjectModule, PushModule, WhatsappModule, ReviewWorkflowModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({

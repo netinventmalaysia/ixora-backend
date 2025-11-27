@@ -4,8 +4,12 @@ import { In, Repository } from 'typeorm';
 import { MySkbProject, ProjectStatus } from './project.entity';
 import { Business } from '../business/registration/business.entity';
 import { MySkbProjectOwner } from './project-owner.entity';
-import { User } from '../users/user.entity';
-import { MySkbOwnership, OwnershipStatus } from './ownership.entity';
+import { User, UserRole } from '../users/user.entity';
+import { MySkbOwnership } from './ownership.entity';
+import { ReviewWorkflowService } from '../review-workflow/review-workflow.service';
+import { ReviewStage } from '../review-workflow/review-workflow.entity';
+
+const MY_SKB_WORKFLOW_MODULE = 'myskb';
 
 @Injectable()
 export class MySkbProjectService {
@@ -18,6 +22,7 @@ export class MySkbProjectService {
         private readonly ownerRepo: Repository<MySkbProjectOwner>,
         @InjectRepository(MySkbOwnership)
         private readonly ownershipRepo: Repository<MySkbOwnership>,
+        private readonly reviewWorkflowService: ReviewWorkflowService,
     ) { }
 
     async upsertDraft(
@@ -62,11 +67,13 @@ export class MySkbProjectService {
 
     async submit(businessId: number, createdByUserId: number, ownersUserIds: number[], data?: Record<string, any>) {
         let payload = data;
+        const firstStage = await this.reviewWorkflowService.getFirstEnabledStage(MY_SKB_WORKFLOW_MODULE);
 
         const submission = this.repo.create({
             businessId,
             createdBy: createdByUserId,
             status: ProjectStatus.SUBMITTED,
+            currentReviewStage: firstStage,
             data: payload,
             latitude: (payload as any)?.latitude ?? (payload as any)?.lat,
             longitude: (payload as any)?.longitude ?? (payload as any)?.lng,
@@ -180,6 +187,7 @@ export class MySkbProjectService {
                 userId: p.createdBy,
                 latitude: (p as any).latitude ?? null,
                 longitude: (p as any).longitude ?? null,
+                reviewStage: p.currentReviewStage ?? null,
             };
         });
         return { data, total, limit, offset };
@@ -245,6 +253,7 @@ export class MySkbProjectService {
             owners: ownersFormatted,
             latitude: (project as any).latitude ?? null,
             longitude: (project as any).longitude ?? null,
+            review_stage: project.currentReviewStage ?? null,
         };
     }
 
@@ -282,28 +291,80 @@ export class MySkbProjectService {
         return { data, total, limit, offset };
     }
 
-    async review(id: number, reviewerUserId: number, status: 'Approved' | 'Rejected' | 'approved' | 'rejected', reason?: string) {
+    async review(
+        id: number,
+        reviewerUserId: number,
+        status: 'Approved' | 'Rejected' | 'approved' | 'rejected',
+        reason?: string,
+        reviewerRole?: string,
+    ) {
         const project = await this.repo.findOne({ where: { id } });
         if (!project) throw new NotFoundException('Project not found');
-        const lower = String(status).toLowerCase();
-        let next: ProjectStatus;
-        if (lower === 'approved') next = ProjectStatus.PENDING_PAYMENT; // move to pending payment after admin approval
-        else if (lower === 'rejected') next = ProjectStatus.REJECTED;
-        else throw new ForbiddenException('Invalid status');
 
-        // Persist review info into data._review
-        const now = new Date();
-        const data = project.data || {};
-        const audit = { reviewerUserId, status: next, reason, at: now.toISOString() };
-        project.data = { ...data, _review: audit };
-        project.status = next;
+        const activeStages = await this.reviewWorkflowService.getActiveStages(MY_SKB_WORKFLOW_MODULE);
+        if (!activeStages.length) {
+            throw new ForbiddenException('No review stages configured for this module.');
+        }
+
+        const orderedStageKeys = activeStages.map((stage) => stage.stage);
+        let currentStage: ReviewStage | null = project.currentReviewStage && orderedStageKeys.includes(project.currentReviewStage)
+            ? project.currentReviewStage
+            : orderedStageKeys[0];
+        if (!currentStage) throw new ForbiddenException('Review stage could not be resolved.');
+
+        project.currentReviewStage = currentStage;
+
+        const canBypassAssignment = reviewerRole === UserRole.SUPERADMIN;
+        if (!canBypassAssignment) {
+            await this.reviewWorkflowService.assertUserAssigned(MY_SKB_WORKFLOW_MODULE, currentStage, reviewerUserId);
+        }
+
+        const lower = String(status).toLowerCase();
+        if (lower !== 'approved' && lower !== 'rejected') {
+            throw new ForbiddenException('Invalid review status');
+        }
+
+        const now = new Date().toISOString();
+        const data = project.data ? { ...project.data } : {};
+        const history: any[] = Array.isArray((data as any)._review_history) ? [...(data as any)._review_history] : [];
+        const auditEntry = {
+            reviewerUserId,
+            reviewerRole,
+            stage: currentStage,
+            decision: lower,
+            reason,
+            at: now,
+        };
+        history.push(auditEntry);
+        (data as any)._review_history = history;
+        (data as any)._review = auditEntry;
+        project.data = data;
+
+        if (lower === 'approved') {
+            const currentIndex = orderedStageKeys.indexOf(currentStage);
+            const hasNext = currentIndex > -1 && currentIndex < orderedStageKeys.length - 1;
+            if (hasNext) {
+                project.currentReviewStage = orderedStageKeys[currentIndex + 1];
+                project.status = ProjectStatus.SUBMITTED;
+            } else {
+                project.currentReviewStage = null;
+                project.status = ProjectStatus.PENDING_PAYMENT;
+            }
+        } else {
+            project.currentReviewStage = null;
+            project.status = ProjectStatus.REJECTED;
+        }
+
         const saved = await this.repo.save(project);
         return {
             id: saved.id,
             status: saved.status,
-            reviewed_at: audit.at,
+            reviewed_at: now,
             reviewer_user_id: reviewerUserId,
             reason,
+            review_stage: currentStage,
+            next_stage: saved.currentReviewStage ?? null,
+            decision: lower,
         };
     }
 }

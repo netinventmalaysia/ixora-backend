@@ -49,7 +49,7 @@ export class MySkbProjectController {
     // List projects for admin by status (e.g., submitted)
     @Get('admin')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'superadmin')
     async adminList(
         @Query('status') status?: string,
         @Query('limit') limit?: string,
@@ -63,7 +63,7 @@ export class MySkbProjectController {
     // Admin detail view: fetch any project by id with owners and business info
     @Get('admin/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'superadmin')
     async adminGetOne(@Param('id') id: string) {
         return this.service.getByIdWithOwners(Number(id));
     }
@@ -71,7 +71,7 @@ export class MySkbProjectController {
     // Review a submitted project: approve or reject with optional reason
     @Patch(':id/review')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('admin')
+    @Roles('admin', 'superadmin')
     async review(
         @Param('id') id: string,
         @Body('status') status: 'Approved' | 'Rejected' | 'approved' | 'rejected',
@@ -79,7 +79,8 @@ export class MySkbProjectController {
         @Req() req: any,
     ) {
         const reviewerId: number = req.user?.userId || req.user?.id || req.user?.sub;
-        return this.service.review(parseInt(id, 10), reviewerId, status as any, reason);
+        const reviewerRole: string | undefined = req.user?.role;
+        return this.service.review(parseInt(id, 10), reviewerId, status as any, reason, reviewerRole);
     }
 
     // Get a single project by id (includes owners with user name and ownership type)

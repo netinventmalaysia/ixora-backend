@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { ReviewStage } from '../review-workflow/review-workflow.entity';
 
 export enum ProjectStatus {
     DRAFT = 'draft',
@@ -29,6 +30,9 @@ export class MySkbProject {
 
     @Column({ type: 'enum', enum: ProjectStatus, default: ProjectStatus.DRAFT })
     status: ProjectStatus;
+
+    @Column({ name: 'currentReviewStage', type: 'enum', enum: ReviewStage, nullable: true })
+    currentReviewStage?: ReviewStage | null;
 
     // Geo coordinates (optional)
     @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })

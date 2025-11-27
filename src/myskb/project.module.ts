@@ -6,9 +6,10 @@ import { MySkbProjectOwner } from './project-owner.entity';
 import { MySkbProjectService } from './project.service';
 import { MySkbProjectController } from './project.controller';
 import { MySkbOwnership } from './ownership.entity';
+import { ReviewWorkflowModule } from '../review-workflow/review-workflow.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([MySkbProject, MySkbProjectOwner, Business, MySkbOwnership])],
+    imports: [TypeOrmModule.forFeature([MySkbProject, MySkbProjectOwner, Business, MySkbOwnership]), ReviewWorkflowModule],
     providers: [MySkbProjectService],
     controllers: [MySkbProjectController],
     exports: [MySkbProjectService],
