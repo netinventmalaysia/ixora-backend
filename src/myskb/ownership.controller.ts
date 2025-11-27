@@ -9,13 +9,13 @@ import { InviteOwnershipDto, ListOwnershipQueryDto, UpdateOwnershipDto } from '.
 @ApiTags('MySKB Ownership')
 @ApiBearerAuth('bearer')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('business', 'admin')
+@Roles('business', 'admin', 'superadmin', 'consultant', 'personal')
 @Controller('myskb/ownership')
 export class MySkbOwnershipController {
   constructor(private readonly service: MySkbOwnershipService) { }
 
   @Get()
-  @Roles('business', 'admin', 'personal', 'consultant')
+  @Roles('business', 'admin', 'personal', 'consultant', 'superadmin')
   async list(@Query() query: ListOwnershipQueryDto & { businessId?: number }, @Req() req: any) {
     // Support both business_id and businessId
     if (!query.business_id && (query as any).businessId) {
@@ -42,7 +42,7 @@ export class MySkbOwnershipController {
   }
 
   @Get('access')
-  @Roles('business', 'admin', 'personal', 'consultant')
+  @Roles('business', 'admin', 'personal', 'consultant', 'superadmin')
   access(@Query('business_id') bid: string, @Req() req: any) {
     const userId: number | undefined = req.user?.userId ?? req.user?.id ?? req.user?.sub;
     return this.service.access(parseInt(bid, 10), userId);
