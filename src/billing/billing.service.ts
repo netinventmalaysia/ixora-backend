@@ -15,6 +15,7 @@ import { MbmbCallbackDto } from './dto/mbmb-callback.dto';
 import { Payment } from './payment.entity';
 import { PaymentSubmitDto } from './dto/payment-submit.dto';
 import { CheckoutOutstandingDto } from './dto/checkout-outstanding.dto';
+import { MySkbProjectService } from '../myskb/project.service';
 
 @Injectable()
 export class BillingService {
@@ -24,6 +25,7 @@ export class BillingService {
     @InjectRepository(BillingItem) private readonly billingItemRepo: Repository<BillingItem>,
     @InjectRepository(Payment) private readonly paymentRepo: Repository<Payment>,
     private readonly mbmb: MbmbService,
+    private readonly myskbProjects: MySkbProjectService,
   ) { }
 
   // Contract: returns array of InvoiceDto (empty array if none)
@@ -178,7 +180,7 @@ export class BillingService {
       skey: dto.skey,
     }));
     const reference = dto.orderid;
-    const billing = await this.billingRepo.findOne({ where: { reference }, relations: ['items', 'user'] });
+      const billing = await this.billingRepo.findOne({ where: { reference }, relations: ['items', 'user'] });
     if (!billing) throw new NotFoundException('Billing not found');
 
     // Normalize status: treat 'Paid', 'N', '00', '1' as paid
@@ -221,6 +223,10 @@ export class BillingService {
             amaun: Number(item.amaun),
           })),
         };
+          await this.myskbProjects.handlePaymentReference(reference, {
+          amount: dto.amount ? Number(dto.amount) : undefined,
+          paidAt: dto.paydate,
+        });
         await this.insertOnlineBill(insertPayload);
       } catch (insertErr: any) {
         // Log error but don't fail the callback

@@ -176,4 +176,26 @@ export class MailService {
             `,
         });
     }
+
+    async sendMySkbFinalApprovalRequest(
+        email: string,
+        context: { projectId: number; projectTitle?: string; reviewUrl?: string }
+    ) {
+        const { projectId, projectTitle, reviewUrl } = context || {} as any;
+        const linkHtml = reviewUrl
+            ? `<p><a href="${reviewUrl}" target="_blank" rel="noopener noreferrer">Open project review</a></p>`
+            : '';
+        return this.mailerService.sendMail({
+            to: email,
+            subject: 'Ixora MBMB: MySKB final approval required',
+            html: `
+                <h3>Final Approval Required</h3>
+                <p>The MySKB project <strong>${projectTitle || `#${projectId}`}</strong> has completed the processing-fee payment.</p>
+                <p>Please review and record the final decision so that the permit payment request can be issued.</p>
+                ${linkHtml}
+                <p>Project ID: <strong>${projectId}</strong></p>
+                <p>Thank you,<br/>MBMB Team</p>
+            `,
+        });
+    }
 }

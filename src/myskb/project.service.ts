@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { MySkbProject, ProjectStatus } from './project.entity';
@@ -8,6 +8,7 @@ import { User, UserRole } from '../users/user.entity';
 import { MySkbOwnership } from './ownership.entity';
 import { ReviewWorkflowService } from '../review-workflow/review-workflow.service';
 import { ReviewStage } from '../review-workflow/review-workflow.entity';
+import { MailService } from '../mail/mail.service';
 
 const MY_SKB_WORKFLOW_MODULE = 'myskb';
 
@@ -23,7 +24,59 @@ export class MySkbProjectService {
         @InjectRepository(MySkbOwnership)
         private readonly ownershipRepo: Repository<MySkbOwnership>,
         private readonly reviewWorkflowService: ReviewWorkflowService,
+        private readonly mail: MailService,
     ) { }
+
+    private buildWorkspaceUrl(path: string) {
+        const fallback = process.env.WORKSPACE_URL || process.env.FRONTEND_URL || '';
+        const base = fallback.replace(/\/$/, '');
+        return base ? `${base}${path.startsWith('/') ? '' : '/'}${path}` : undefined;
+    }
+
+    private formatStatusLabel(raw: string | null | undefined) {
+        if (!raw) return 'Submitted';
+        return raw
+            .toString()
+            .trim()
+            .replace(/[_\s]+/g, ' ')
+            .toLowerCase()
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+
+    private parsePaymentReference(reference: string) {
+        if (!reference) return null;
+        const parts = reference.split('-');
+        if (parts.length < 3) return null;
+        if (parts[0].toUpperCase() !== 'MYSKB') return null;
+        const kindRaw = parts[1]?.toLowerCase();
+        const projectId = Number(parts[2]);
+        if (!projectId || Number.isNaN(projectId)) return null;
+        if (kindRaw !== 'processing' && kindRaw !== 'permit') return null;
+        return { projectId, kind: kindRaw as 'processing' | 'permit' };
+    }
+
+    private async notifyFinalStageMembers(project: MySkbProject) {
+        try {
+            const workflow = await this.reviewWorkflowService.getModuleWorkflow(MY_SKB_WORKFLOW_MODULE);
+            const finalStage = workflow.stages.find((stage) => stage.stage === ReviewStage.FINAL && stage.enabled);
+            if (!finalStage) return;
+            const recipients = (finalStage.members || []).map((member) => member.email).filter(Boolean);
+            if (!recipients.length) return;
+            const projectTitle = (project as any)?.data?.projectTitle || `Project #${project.id}`;
+            const reviewUrl = this.buildWorkspaceUrl(`/myskb/project/${project.id}`);
+            await Promise.all(
+                recipients.map((email) =>
+                    this.mail.sendMySkbFinalApprovalRequest(email, {
+                        projectId: project.id,
+                        projectTitle,
+                        reviewUrl,
+                    })
+                )
+            );
+        } catch (err) {
+            console.error('[MySkbProjectService] Failed to notify final reviewers:', err?.message || err);
+        }
+    }
 
     async upsertDraft(
         businessId: number,
@@ -176,11 +229,13 @@ export class MySkbProjectService {
         const data = rows.map((p) => {
             const b = bizMap.get(p.businessId);
             const businessName = b ? ((b as any).name || (b as any).companyName || (b as any).company_name || (b as any).registration_name) : undefined;
+            const rawStatus = String(p.status || '');
             return {
                 id: p.id,
                 projectTitle: (p as any).data?.projectTitle ?? null,
                 created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
-                status: String(p.status),
+                status: rawStatus,
+                status_raw: rawStatus,
                 data: p.data,
                 businessId: p.businessId,
                 business: businessName ? { id: p.businessId, name: businessName } : { id: p.businessId },
@@ -240,14 +295,13 @@ export class MySkbProjectService {
         }));
         // Normalize status to display form (Title case)
         const statusRaw = String(project.status || '').toString();
-        const statusTitle = statusRaw
-            ? statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase()
-            : 'Submitted';
+        const statusTitle = this.formatStatusLabel(statusRaw);
         return {
             id: project.id,
             business_id: project.businessId,
             business: businessName ? { id: project.businessId, name: businessName } : { id: project.businessId },
             status: statusTitle,
+            status_raw: statusRaw,
             created_at: project.createdAt ? project.createdAt.toISOString() : undefined,
             data: project.data,
             owners: ownersFormatted,
@@ -275,11 +329,13 @@ export class MySkbProjectService {
         const data = rows.map((p) => {
             const b = bizMap.get(p.businessId);
             const businessName = b ? ((b as any).name || (b as any).companyName || (b as any).company_name || (b as any).registration_name) : undefined;
+            const rawStatus = String(p.status || '');
             return {
                 id: p.id,
                 projectTitle: (p as any).data?.projectTitle ?? null,
                 created_at: p.createdAt ? p.createdAt.toISOString() : undefined,
-                status: String(p.status),
+                status: rawStatus,
+                status_raw: rawStatus,
                 data: p.data,
                 businessId: p.businessId,
                 business: businessName ? { id: p.businessId, name: businessName } : { id: p.businessId },
@@ -345,10 +401,17 @@ export class MySkbProjectService {
             const hasNext = currentIndex > -1 && currentIndex < orderedStageKeys.length - 1;
             if (hasNext) {
                 project.currentReviewStage = orderedStageKeys[currentIndex + 1];
-                project.status = ProjectStatus.SUBMITTED;
+                if (project.currentReviewStage === ReviewStage.FINAL) {
+                    project.status = ProjectStatus.PENDING_PROCESSING_PAYMENT;
+                } else {
+                    project.status = ProjectStatus.SUBMITTED;
+                }
             } else {
+                if (project.status !== ProjectStatus.PROCESSING_PAYMENT_PAID && project.status !== ProjectStatus.PENDING_PERMIT_PAYMENT) {
+                    throw new ForbiddenException('Processing payment must be marked as paid before final approval.');
+                }
                 project.currentReviewStage = null;
-                project.status = ProjectStatus.PENDING_PAYMENT;
+                project.status = ProjectStatus.PENDING_PERMIT_PAYMENT;
             }
         } else {
             project.currentReviewStage = null;
@@ -366,5 +429,85 @@ export class MySkbProjectService {
             next_stage: saved.currentReviewStage ?? null,
             decision: lower,
         };
+    }
+
+    async markProcessingPaymentPaid(projectId: number, metadata: { reference?: string; paidAt?: Date | string }) {
+        const project = await this.repo.findOne({ where: { id: projectId } });
+        if (!project) throw new NotFoundException('Project not found');
+        if (project.status !== ProjectStatus.PENDING_PROCESSING_PAYMENT) {
+            throw new BadRequestException('Processing payment cannot be marked paid in the current state');
+        }
+        const data = project.data ? { ...project.data } : {};
+        const paidAt = metadata?.paidAt ? new Date(metadata.paidAt).toISOString() : new Date().toISOString();
+        (data as any)._processingPayment = {
+            ...(data as any)._processingPayment,
+            reference: metadata?.reference ?? (data as any)._processingPayment?.reference ?? null,
+            paidAt,
+        };
+        project.data = data;
+        project.status = ProjectStatus.PROCESSING_PAYMENT_PAID;
+        await this.repo.save(project);
+        await this.notifyFinalStageMembers(project);
+        return { id: project.id, status: project.status, paidAt };
+    }
+
+    async markPermitPaymentPaid(projectId: number, metadata: { reference?: string; paidAt?: Date | string }) {
+        const project = await this.repo.findOne({ where: { id: projectId } });
+        if (!project) throw new NotFoundException('Project not found');
+        if (project.status !== ProjectStatus.PENDING_PERMIT_PAYMENT && project.status !== ProjectStatus.PERMIT_ACTIVE) {
+            throw new BadRequestException('Permit payment is not requested for this project');
+        }
+        const data = project.data ? { ...project.data } : {};
+        const paidAt = metadata?.paidAt ? new Date(metadata.paidAt).toISOString() : new Date().toISOString();
+        (data as any)._permitPayment = {
+            ...(data as any)._permitPayment,
+            reference: metadata?.reference ?? (data as any)._permitPayment?.reference ?? null,
+            paidAt,
+        };
+        project.data = data;
+        project.status = ProjectStatus.PERMIT_ACTIVE;
+        await this.repo.save(project);
+        return { id: project.id, status: project.status, paidAt };
+    }
+
+    async handlePaymentReference(orderId: string, payload: { amount?: number; paidAt?: string | Date } = {}) {
+        const parsed = this.parsePaymentReference(orderId);
+        if (!parsed) return false;
+        const project = await this.repo.findOne({ where: { id: parsed.projectId } });
+        if (!project) return false;
+        const paidAtIso = payload?.paidAt ? new Date(payload.paidAt).toISOString() : new Date().toISOString();
+        const data = project.data ? { ...project.data } : {};
+        if (parsed.kind === 'processing') {
+            (data as any)._processingPayment = {
+                ...(data as any)._processingPayment,
+                reference: orderId,
+                amount: payload?.amount ?? (data as any)._processingPayment?.amount ?? null,
+                paidAt: paidAtIso,
+            };
+            project.data = data;
+            if (project.status === ProjectStatus.PENDING_PROCESSING_PAYMENT) {
+                project.status = ProjectStatus.PROCESSING_PAYMENT_PAID;
+                await this.repo.save(project);
+                await this.notifyFinalStageMembers(project);
+            } else {
+                await this.repo.save(project);
+            }
+            return true;
+        }
+        if (parsed.kind === 'permit') {
+            (data as any)._permitPayment = {
+                ...(data as any)._permitPayment,
+                reference: orderId,
+                amount: payload?.amount ?? (data as any)._permitPayment?.amount ?? null,
+                paidAt: paidAtIso,
+            };
+            project.data = data;
+            if (project.status === ProjectStatus.PENDING_PERMIT_PAYMENT) {
+                project.status = ProjectStatus.PERMIT_ACTIVE;
+            }
+            await this.repo.save(project);
+            return true;
+        }
+        return false;
     }
 }
