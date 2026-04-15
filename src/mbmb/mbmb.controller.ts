@@ -92,7 +92,9 @@ export class MbmbController {
 
             const amountCandidates = isCompound
                 ? [compoundAmount]
-                : it?.jumlah;
+                : isAssessment
+                    ? [it?.jumlah, it?.t_cukai]   // jumlah = grand total; t_cukai = tax-only fallback
+                    : [it?.jumlah];
         
             for (const c of amountCandidates) {
                 if (c != null && c !== '') {

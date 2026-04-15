@@ -49,9 +49,13 @@ export class MySkbProject {
     @Column({ type: 'json' })
     data: any;
 
+    @Column({ name: 'reportDate', type: 'date', nullable: true })
+    reportDate: Date;
+
     @CreateDateColumn()
     createdAt: Date;
 
     @UpdateDateColumn()
     updatedAt: Date;
 }
+
