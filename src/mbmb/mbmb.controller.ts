@@ -18,9 +18,9 @@ export class MbmbController {
     async health() {
         try {
             await this.mbmb.get('/bill/online/test');
-            return { ok: true };
+            return { ok: true, version: '2026-04-16' };
         } catch (err: any) {
-            return { ok: false, error: err?.message ?? err };
+            return { ok: false, error: err?.message ?? err, version: '2026-04-16' };
         }
     }
 
