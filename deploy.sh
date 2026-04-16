@@ -34,8 +34,13 @@ DIGEST="${DIGEST:-}"
 [ -z "${DIGEST}" ] && [ "${1-}" != "" ] && DIGEST="$1"
 [ -n "${DIGEST}" ] && ! printf '%s' "$DIGEST" | grep -q '^sha256:' && DIGEST=""
 
-# GHCR login if private (uncomment and provide PAT)
-# echo "$GHCR_TOKEN" | "$DOCKER_BIN" login ghcr.io -u netinventmalaysia --password-stdin || true
+# GHCR login (required if image is private)
+if [ -n "${GHCR_TOKEN:-}" ]; then
+  echo "$GHCR_TOKEN" | "$DOCKER_BIN" login ghcr.io -u netinventmalaysia --password-stdin
+  echo "GHCR login OK"
+else
+  echo "WARN: GHCR_TOKEN not set — skipping login (only works for public images)"
+fi
 
 if [ -n "$DIGEST" ]; then
   IMAGE_REF="ghcr.io/netinventmalaysia/ixora-backend@${DIGEST}"
