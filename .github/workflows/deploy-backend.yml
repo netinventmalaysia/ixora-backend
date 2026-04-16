@@ -76,10 +76,10 @@ jobs:
             echo "GET ${URL} (attempt $i/5)"
             RESPONSE=$(curl -fsSL --connect-timeout 20 --max-time 30 "$URL" || true)
             echo "Response: $RESPONSE"
-            if echo "$RESPONSE" | grep -qE '"code"\s*:\s*0'; then
-              echo "Webhook OK (code 0)"; exit 0
+            if echo "$RESPONSE" | grep -qE '"code"\s*:\s*1'; then
+              echo "Webhook OK (script launched)"; exit 0
             fi
-            echo "Webhook returned non-zero code, retrying in 8s..."
+            echo "Webhook not acknowledged, retrying in 8s..."
             sleep 8
           done
           echo "Webhook failed after retries" >&2
